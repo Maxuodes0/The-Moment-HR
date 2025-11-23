@@ -1,0 +1,29 @@
+name: Run Notion HR Jobs
+
+on:
+  schedule:
+    - cron: "0 6 * * *"   # يشتغل كل يوم 6 الصباح UTC (تقدر تعدلها)
+  workflow_dispatch:       # تقدر تشغله يدوي من تبويب Actions
+
+jobs:
+  run-notion-scripts:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Read all Notion databases
+        run: npm run read-db
+        env:
+          NOTION_TOKEN: ${{ secrets.NOTION_TOKEN }}
+          NOTION_DB_EMPLOYEES: ${{ secrets.NOTION_DB_EMPLOYEES }}
+          VACATION_DB_ID: ${{ secrets.VACATION_DB_ID }}
