@@ -1,0 +1,12 @@
+{
+  "name": "the-moment-hr",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "read-db": "node index.js"
+  },
+  "dependencies": {
+    "@notionhq/client": "^2.2.10"
+  }
+}
