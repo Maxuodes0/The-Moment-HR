@@ -10,3 +10,6 @@
     "@notionhq/client": "^2.2.10"
   }
 }
+"scripts": {
+  "read-db": "node index.js"
+}
