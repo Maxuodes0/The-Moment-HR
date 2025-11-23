@@ -1,35 +1,48 @@
 import { Client } from "@notionhq/client";
 
 const notion = new Client({
-  auth: process.env.NOTION_TOKEN, // بنحطها كـ secret بعدين، مو في الكود
+  auth: process.env.NOTION_TOKEN,
 });
 
-const databaseId = process.env.NOTION_DATABASE_ID; // هنا رقم الداتابيس
+// هنا نحط كل الداتابيس اللي موجودة في Secrets
+const databases = {
+  employees: process.env.NOTION_DB_EMPLOYEES,
+  vacation: process.env.VACATION_DB_ID
+};
 
-async function main() {
-  if (!process.env.NOTION_TOKEN) {
-    console.error("NOTION_TOKEN is missing");
+async function readDatabase(dbName, dbId) {
+  console.log(`\n===== Reading ${dbName} database =====`);
+
+  if (!dbId) {
+    console.log(`❌ Database ID for ${dbName} is missing.`);
     return;
   }
-  if (!databaseId) {
-    console.error("NOTION_DATABASE_ID is missing");
-    return;
-  }
 
-  console.log("Reading Notion database...");
+  try {
+    const response = await notion.databases.query({
+      database_id: dbId,
+      page_size: 10,
+    });
 
-  const response = await notion.databases.query({
-    database_id: databaseId,
-    page_size: 5, // مؤقت: أول 5 سجلات بس
-  });
+    console.log(`✔ Found ${response.results.length} rows in ${dbName}`);
 
-  console.log("Number of results:", response.results.length);
-
-  for (const page of response.results) {
-    console.log("Page id:", page.id);
+    response.results.forEach((page) => {
+      console.log(`- Page ID: ${page.id}`);
+    });
+  } catch (err) {
+    console.log(`❌ Error reading ${dbName}:`, err.message);
   }
 }
 
-main().catch((err) => {
-  console.error("Error:", err.message);
-});
+async function main() {
+  if (!process.env.NOTION_TOKEN) {
+    console.error("❌ NOTION_TOKEN is missing.");
+    return;
+  }
+
+  for (const [name, id] of Object.entries(databases)) {
+    await readDatabase(name, id);
+  }
+}
+
+main();
