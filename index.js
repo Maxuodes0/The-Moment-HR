@@ -4,44 +4,40 @@ const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 });
 
-// هنا نحط كل الداتابيس اللي موجودة في Secrets
 const databases = {
   employees: process.env.NOTION_DB_EMPLOYEES,
-  vacation: process.env.VACATION_DB_ID
+  vacation: process.env.VACATION_DB_ID,
 };
 
-async function readDatabase(dbName, dbId) {
-  console.log(`\n===== Reading ${dbName} database =====`);
+async function showDatabaseFields(dbName, dbId) {
+  console.log(`\n===== Fields in ${dbName} database =====`);
 
   if (!dbId) {
-    console.log(`❌ Database ID for ${dbName} is missing.`);
+    console.log(`❌ Missing DB ID for ${dbName}`);
     return;
   }
 
   try {
-    const response = await notion.databases.query({
-      database_id: dbId,
-      page_size: 10,
-    });
+    // نجيب معلومات الداتابيس
+    const response = await notion.databases.retrieve({ database_id: dbId });
 
-    console.log(`✔ Found ${response.results.length} rows in ${dbName}`);
+    const props = response.properties;
 
-    response.results.forEach((page) => {
-      console.log(`- Page ID: ${page.id}`);
-    });
+    console.log(`Found ${Object.keys(props).length} fields:\n`);
+
+    for (const [fieldName, fieldInfo] of Object.entries(props)) {
+      const type = fieldInfo.type;
+      console.log(`- ${fieldName} (${type})`);
+    }
+
   } catch (err) {
-    console.log(`❌ Error reading ${dbName}:`, err.message);
+    console.error(`❌ Error fetching fields for ${dbName}:`, err.message);
   }
 }
 
 async function main() {
-  if (!process.env.NOTION_TOKEN) {
-    console.error("❌ NOTION_TOKEN is missing.");
-    return;
-  }
-
   for (const [name, id] of Object.entries(databases)) {
-    await readDatabase(name, id);
+    await showDatabaseFields(name, id);
   }
 }
 
