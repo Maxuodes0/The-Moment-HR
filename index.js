@@ -36,7 +36,7 @@ function addOneDay(dateStr) {
 }
 
 // ========================
-// قالب HTML للإيميل (تصميم tHe MOMENT)
+// قالب HTML للإيميل (تصميم The Moment)
 // ========================
 
 function buildVacationRequestHtml({
@@ -52,7 +52,7 @@ function buildVacationRequestHtml({
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <title>إشعار استلام طلب الإجازة - tHe MOMENT</title>
+    <title>إشعار استلام طلب الإجازة - The Moment</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
   <body style="margin:0; padding:0; background-color:#000000; font-family:Arial,Helvetica,sans-serif; direction:rtl; text-align:right;">
@@ -66,7 +66,7 @@ function buildVacationRequestHtml({
               <td align="center" style="padding:0; margin:0;">
                 <img
                   src="cid:themoment-header"
-                  alt="tHe MOMENT"
+                  alt="The Moment"
                   style="display:block; width:100%; max-width:600px; height:auto; border:0; line-height:0; font-size:0;"
                 />
               </td>
@@ -84,9 +84,9 @@ function buildVacationRequestHtml({
                 </p>
 
                 <p style="font-size:14px; line-height:1.8; color:#f2f2f2; margin:0 0 16px 0;">
-                  نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وتم تحويل حالته إلى
+                  نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وحالته 
                   <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية في
-                  <strong>tHe MOMENT</strong>.
+                  <strong>The Moment</strong>.
                 </p>
 
                 <div style="margin:16px 0 10px 0; font-size:15px; font-weight:bold; color:#ffb37a;">
@@ -141,7 +141,7 @@ function buildVacationRequestHtml({
                 </table>
 
                 <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:16px 0 8px 0;">
-                  سيتم مراجعة طلبك والرد عليك بتحديث الحالة (موافقة أو رفض) عبر البريد الإلكتروني فور اتخاذ القرار.
+                  سيتم مراجعة طلبك بكل عناية، وسيتم الرد عليك بتحديث الحالة عبر البريد الإلكتروني فور اتخاذ القرار. نشكرك على لطفك وتفهمك.
                 </p>
 
                 <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:0 0 4px 0;">
@@ -150,7 +150,7 @@ function buildVacationRequestHtml({
 
                 <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:16px 0 0 0;">
                   مع خالص التحية،<br/>
-                  فريق الموارد البشرية – tHe MOMENT
+                  فريق الموارد البشرية – The Moment
                 </p>
               </td>
             </tr>
@@ -158,7 +158,7 @@ function buildVacationRequestHtml({
             <!-- الفوتر -->
             <tr>
               <td style="padding:16px 24px 24px 24px; font-size:11px; line-height:1.5; color:#aaaaaa; text-align:right; border-top:1px solid #333;">
-                © tHe MOMENT. جميع الحقوق محفوظة.<br/>
+                © The Moment. جميع الحقوق محفوظة.<br/>
                 هذا البريد أُرسِل تلقائيًا من نظام إدارة الإجازات. في حال وجود استفسار، يرجى التواصل مع قسم الموارد البشرية.
               </td>
             </tr>
@@ -450,7 +450,7 @@ async function main() {
     return;
   }
 
-  console.log("Starting tHe MOMENT HR vacation processor...");
+  console.log("Starting The Moment HR vacation processor...");
   await processVacationRequests();
 }
 
