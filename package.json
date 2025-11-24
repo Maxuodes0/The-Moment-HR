@@ -7,6 +7,7 @@
     "read-db": "node index.js"
   },
   "dependencies": {
-    "@notionhq/client": "^2.2.10"
+    "@notionhq/client": "^2.2.10",
+    "nodemailer": "^6.9.16"
   }
 }
