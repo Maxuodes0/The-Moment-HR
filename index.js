@@ -82,7 +82,6 @@ function buildVacationEmailHtml({
       <strong>The Moment</strong>.
     `;
   } else {
-    // لو حالة غير معروفة نرجع نص بسيط
     mainTitle = "تحديث بخصوص طلب الإجازة الخاص بك";
     introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
     statusLine = `
@@ -131,40 +130,47 @@ function buildVacationEmailHtml({
                   ${statusLine}
                 </p>
 
-                <div style="margin:16px 0 10px 0; font-size:15px; font-weight:bold; color:#ffb37a;">
-                  تفاصيل الطلب:
+                <!-- عنوان تفاصيل الطلب -->
+                <div style="margin:20px 0 12px 0; font-size:15px; font-weight:bold; color:#ffb37a;">
+                  🗂️ تفاصيل الطلب:
                 </div>
 
-                <table width="100%" border="0" cellspacing="0" cellpadding="0" style="font-size:13px; line-height:1.7; color:#f2f2f2;">
+                <!-- جدول تفاصيل الطلب (يمين + RTL + إيموجيات) -->
+                <table width="100%" border="0" cellspacing="0" cellpadding="0"
+                  style="font-size:14px; line-height:1.9; color:#f2f2f2; direction:rtl; text-align:right;">
+
                   <tr>
-                    <td style="padding:4px 0; width:35%; font-weight:bold; color:#ffd2a3;">
-                      نوع الإجازة:
+                    <td style="padding:6px 0; width:40%; font-weight:bold; color:#ffd2a3;">
+                      📄 نوع الإجازة:
                     </td>
-                    <td style="padding:4px 0;">
+                    <td style="padding:6px 0;">
                       ${vacationType || "غير محدد"}
                     </td>
                   </tr>
+
                   <tr>
-                    <td style="padding:4px 0; font-weight:bold; color:#ffd2a3;">
-                      من تاريخ:
+                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
+                      📅 من تاريخ:
                     </td>
-                    <td style="padding:4px 0;">
+                    <td style="padding:6px 0;">
                       ${startDate || "غير محدد"}
                     </td>
                   </tr>
+
                   <tr>
-                    <td style="padding:4px 0; font-weight:bold; color:#ffd2a3;">
-                      إلى تاريخ:
+                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
+                      📅 إلى تاريخ:
                     </td>
-                    <td style="padding:4px 0;">
+                    <td style="padding:6px 0;">
                       ${endDate || "غير محدد"}
                     </td>
                   </tr>
+
                   <tr>
-                    <td style="padding:4px 0; font-weight:bold; color:#ffd2a3;">
-                      عدد الأيام:
+                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
+                      🧮 عدد الأيام:
                     </td>
-                    <td style="padding:4px 0;">
+                    <td style="padding:6px 0;">
                       ${
                         Number.isFinite(days)
                           ? days + " يوم"
@@ -172,14 +178,16 @@ function buildVacationEmailHtml({
                       }
                     </td>
                   </tr>
+
                   <tr>
-                    <td style="padding:4px 0; font-weight:bold; color:#ffd2a3;">
-                      تاريخ العودة المتوقع:
+                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
+                      🔄 تاريخ العودة:
                     </td>
-                    <td style="padding:4px 0;">
+                    <td style="padding:6px 0;">
                       ${backToWork || "سيتم تحديده لاحقاً"}
                     </td>
                   </tr>
+
                 </table>
 
                 ${
@@ -419,18 +427,8 @@ async function processVacationRequests() {
         backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
       };
 
-      // تجهيز تحديث حالة الطلب واسم الموظف (لما نكون في "تحت المراجعة" فقط)
+      // تجهيز اسم الموظف في صفحة الطلب
       const updateProps = {};
-
-      if (currentStatus === STATUS_REVIEW) {
-        // لو مو تحت المراجعة نخليها تحت المراجعة (لو حاب تبقي هذا السلوك)
-        if (currentStatus !== STATUS_REVIEW) {
-          updateProps["حالة الطلب"] = {
-            select: { name: STATUS_REVIEW },
-          };
-        }
-      }
-
       if (employeeName) {
         updateProps["اسم الموظف"] = {
           title: [
@@ -448,7 +446,7 @@ async function processVacationRequests() {
             page_id: pageId,
             properties: updateProps,
           });
-          console.log("✔ Updated vacation request (status/name).");
+          console.log("✔ Updated vacation request (name).");
         } catch (err) {
           console.error(
             `❌ Error updating vacation request ${pageId}:`,
