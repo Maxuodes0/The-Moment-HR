@@ -220,13 +220,13 @@ async function sendEmailToEmployee(toEmail, employeeName, info) {
     text: `تم استلام طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}.`,
     html,
     attachments: [
-      {
-        filename: "themoment-header.png",
-        path: "./themoment-header.png", // مسار الصورة في الريبو
-        cid: "themoment-header",        // نفس القيمة المستخدمة في src="cid:..."
-      },
-    ],
-  };
+  {
+    filename: "themoment-header.png",
+    path: "./assets/themoment-header.png", // ✅ هذا التعديل المهم
+    cid: "themoment-header",              // لازم يطابق src="cid:themoment-header"
+  },
+],
+
 
   await transporter.sendMail(mailOptions);
   console.log(`✔ Email sent to ${toEmail}`);
