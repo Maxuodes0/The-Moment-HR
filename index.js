@@ -64,7 +64,7 @@ function buildVacationRequestHtml({
     }
 
     body {
-      background: linear-gradient(135deg, #f2701d 0%, #120704 100%);
+      background: #120704;
       font-family: 'Segoe UI', 'Arial', sans-serif;
       direction: rtl;
       text-align: right;
@@ -89,7 +89,7 @@ function buildVacationRequestHtml({
 
     /* =========== Header =========== */
     .header {
-      background: linear-gradient(135deg, #f2701d 0%, #ff8c42 50%, #1f1f1f 100%);
+      background: #f2701d;
       padding: 48px 24px;
       text-align: center;
       position: relative;
@@ -101,7 +101,7 @@ function buildVacationRequestHtml({
       position: absolute;
       width: 250px;
       height: 250px;
-      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      background: rgba(255, 255, 255, 0.1);
       border-radius: 50%;
       top: -80px;
       right: -80px;
@@ -137,7 +137,7 @@ function buildVacationRequestHtml({
     .logo-accent {
       width: 60px;
       height: 4px;
-      background: linear-gradient(90deg, #f2701d, #ff8c42);
+      background: #f2701d;
       margin: 10px auto;
       border-radius: 2px;
     }
@@ -216,8 +216,8 @@ function buildVacationRequestHtml({
     }
 
     .details-box {
-      background: linear-gradient(135deg, rgba(242, 112, 29, 0.12) 0%, rgba(242, 112, 29, 0.04) 100%);
-      border: 2px solid rgba(242, 112, 29, 0.45);
+      background: rgba(242, 112, 29, 0.1);
+      border: 2px solid #f2701d;
       border-radius: 10px;
       padding: 18px;
       margin-bottom: 20px;
