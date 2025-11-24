@@ -12,7 +12,10 @@ const notion = new Client({
 const EMPLOYEES_DB_ID = process.env.NOTION_DB_EMPLOYEES;
 const VACATION_DB_ID = process.env.VACATION_DB_ID;
 
-const REVIEW_STATUS_NAME = "تحت المراجعة";
+const STATUS_REVIEW = "تحت المراجعة";
+const STATUS_APPROVED = "موافقة";
+const STATUS_REJECTED = "مرفوضة";
+
 const EMAIL_FLAG_PROPERTY = "هل تم ارسال ايميل؟";
 
 // ========================
@@ -36,23 +39,64 @@ function addOneDay(dateStr) {
 }
 
 // ========================
-// قالب HTML للإيميل (تصميم The Moment)
+// قالب HTML للإيميل (تصميم The Moment) حسب الحالة
 // ========================
 
-function buildVacationRequestHtml({
+function buildVacationEmailHtml({
   employeeName,
   vacationType,
   startDate,
   endDate,
   days,
   backToWork,
+  status,
 }) {
+  let mainTitle = "";
+  let introLine = "";
+  let statusLine = "";
+
+  if (status === STATUS_REVIEW) {
+    mainTitle = "تم استلام طلب الإجازة الخاص بك";
+    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
+    statusLine = `
+      نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وحالته الآن 
+      <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية في
+      <strong>The Moment</strong>.
+    `;
+  } else if (status === STATUS_APPROVED) {
+    mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
+    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
+    statusLine = `
+      نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وحالته الآن
+      <strong>موافقة</strong> من قبل فريق الموارد البشرية في
+      <strong>The Moment</strong>.
+      يمكنك الالتزام بالتواريخ الموضحة أدناه، وفي حال وجود أي تعديل يُرجى التنسيق مع قسم الموارد البشرية.
+    `;
+  } else if (status === STATUS_REJECTED) {
+    mainTitle = "بشأن طلب الإجازة الخاص بك";
+    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
+    statusLine = `
+      نود إبلاغك بأنه بعد مراجعة طلب الإجازة الذي قمت بتقديمه، فإن حالته الآن
+      <strong>مرفوضة</strong>.
+      لطرح أي استفسار حول أسباب الرفض أو إمكانية تعديل الطلب، يُرجى التواصل مع قسم الموارد البشرية في
+      <strong>The Moment</strong>.
+    `;
+  } else {
+    // لو حالة غير معروفة نرجع نص بسيط
+    mainTitle = "تحديث بخصوص طلب الإجازة الخاص بك";
+    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
+    statusLine = `
+      نود إبلاغك بوجود تحديث على حالة طلب الإجازة الخاص بك في
+      <strong>The Moment</strong>.
+    `;
+  }
+
   return `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <title>إشعار استلام طلب الإجازة - The Moment</title>
+    <title>${mainTitle} - The Moment</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   </head>
   <body style="margin:0; padding:0; background-color:#000000; font-family:Arial,Helvetica,sans-serif; direction:rtl; text-align:right;">
@@ -76,17 +120,15 @@ function buildVacationRequestHtml({
             <tr>
               <td style="padding:24px; color:#ffffff; text-align:right;">
                 <h1 style="margin:0 0 12px 0; font-size:22px; font-weight:bold;">
-                  تم استلام طلب الإجازة الخاص بك
+                  ${mainTitle}
                 </h1>
 
                 <p style="font-size:14px; line-height:1.8; color:#f2f2f2; margin:0 0 8px 0;">
-                  عزيزي <strong>${employeeName || "الموظف"}</strong>،
+                  ${introLine}
                 </p>
 
                 <p style="font-size:14px; line-height:1.8; color:#f2f2f2; margin:0 0 16px 0;">
-                  نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وحالته 
-                  <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية في
-                  <strong>The Moment</strong>.
+                  ${statusLine}
                 </p>
 
                 <div style="margin:16px 0 10px 0; font-size:15px; font-weight:bold; color:#ffb37a;">
@@ -140,9 +182,15 @@ function buildVacationRequestHtml({
                   </tr>
                 </table>
 
+                ${
+                  status === STATUS_REVIEW
+                    ? `
                 <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:16px 0 8px 0;">
                   سيتم مراجعة طلبك بكل عناية، وسيتم الرد عليك بتحديث الحالة عبر البريد الإلكتروني فور اتخاذ القرار. نشكرك على لطفك وتفهمك.
                 </p>
+                `
+                    : ""
+                }
 
                 <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:0 0 4px 0;">
                   في حال وجود أي استفسارات إضافية، يمكنك التواصل مع قسم الموارد البشرية.
@@ -173,7 +221,7 @@ function buildVacationRequestHtml({
 }
 
 // ========================
-// إعداد SMTP (لازم يجي قبل sendEmailToEmployee)
+// إعداد SMTP
 // ========================
 
 const transporter = nodemailer.createTransport({
@@ -190,7 +238,7 @@ const transporter = nodemailer.createTransport({
 // إرسال الإيميل
 // ========================
 
-async function sendEmailToEmployee(toEmail, employeeName, info) {
+async function sendEmailToEmployee(toEmail, employeeName, info, status) {
   if (!toEmail) {
     console.log("⚠ لا يوجد ايميل في الطلب، لن يتم ارسال ايميل.");
     return;
@@ -206,20 +254,33 @@ async function sendEmailToEmployee(toEmail, employeeName, info) {
 
   const from = process.env.FROM_EMAIL || process.env.SMTP_USER;
 
-  const html = buildVacationRequestHtml({
+  const html = buildVacationEmailHtml({
     employeeName,
     vacationType: info.vacationType,
     startDate: info.startDate,
     endDate: info.endDate,
     days: info.days,
     backToWork: info.backToWork,
+    status,
   });
+
+  let subject = "تحديث بخصوص طلب الإجازة الخاص بك";
+
+  if (status === STATUS_REVIEW) {
+    subject = "تم استلام طلب الإجازة الخاص بك";
+  } else if (status === STATUS_APPROVED) {
+    subject = "تمت الموافقة على طلب الإجازة الخاص بك";
+  } else if (status === STATUS_REJECTED) {
+    subject = "بشأن طلب الإجازة الخاص بك";
+  }
+
+  const text = `تحديث بخصوص طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}. حالة الطلب الحالية: ${status}.`;
 
   const mailOptions = {
     from,
     to: toEmail,
-    subject: "تم استلام طلب الإجازة الخاص بك",
-    text: `تم استلام طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}.`,
+    subject,
+    text,
     html,
     attachments: [
       {
@@ -231,7 +292,7 @@ async function sendEmailToEmployee(toEmail, employeeName, info) {
   };
 
   await transporter.sendMail(mailOptions);
-  console.log(`✔ Email sent to ${toEmail}`);
+  console.log(`✔ Email sent to ${toEmail} for status "${status}"`);
 }
 
 // ========================
@@ -358,13 +419,16 @@ async function processVacationRequests() {
         backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
       };
 
-      // تجهيز تحديث حالة الطلب واسم الموظف
+      // تجهيز تحديث حالة الطلب واسم الموظف (لما نكون في "تحت المراجعة" فقط)
       const updateProps = {};
 
-      if (currentStatus !== REVIEW_STATUS_NAME) {
-        updateProps["حالة الطلب"] = {
-          select: { name: REVIEW_STATUS_NAME },
-        };
+      if (currentStatus === STATUS_REVIEW) {
+        // لو مو تحت المراجعة نخليها تحت المراجعة (لو حاب تبقي هذا السلوك)
+        if (currentStatus !== STATUS_REVIEW) {
+          updateProps["حالة الطلب"] = {
+            select: { name: STATUS_REVIEW },
+          };
+        }
       }
 
       if (employeeName) {
@@ -393,11 +457,23 @@ async function processVacationRequests() {
         }
       }
 
+      // نحدد نوع الإيميل حسب حالة الطلب الحالية
+      let statusForEmail = null;
+      if (
+        currentStatus === STATUS_REVIEW ||
+        currentStatus === STATUS_APPROVED ||
+        currentStatus === STATUS_REJECTED
+      ) {
+        statusForEmail = currentStatus;
+      }
+
       // نرسل ايميل فقط إذا:
-      // - ما سبق وأرسلنا لنفس الحالة (emailFlag !== REVIEW_STATUS_NAME)
+      // - الحالة الحالية واحدة من (تحت المراجعة / موافقة / مرفوضة)
+      // - حقل "هل تم ارسال ايميل؟" مختلف عن الحالة الحالية (يعني تغيير صار)
       // - وفيه ايميل واسم وتواريخ
       const shouldSendEmail =
-        emailFlag !== REVIEW_STATUS_NAME &&
+        statusForEmail !== null &&
+        emailFlag !== currentStatus &&
         !!finalEmail &&
         !!employeeName &&
         !!startRaw &&
@@ -405,15 +481,20 @@ async function processVacationRequests() {
 
       if (!shouldSendEmail) {
         console.log(
-          "لن يتم ارسال ايميل لهذا الطلب (الشروط غير مكتملة أو تم الإرسال سابقاً)."
+          "لن يتم ارسال ايميل لهذا الطلب (الشروط غير مكتملة أو تم الإرسال لنفس الحالة سابقاً)."
         );
         continue;
       }
 
       try {
-        await sendEmailToEmployee(finalEmail, employeeName, vacationInfo);
+        await sendEmailToEmployee(
+          finalEmail,
+          employeeName,
+          vacationInfo,
+          statusForEmail
+        );
 
-        // تحديث علامة الإيميل بعد الإرسال
+        // تحديث علامة الإيميل بعد الإرسال باسم الحالة الحالية
         await notion.pages.update({
           page_id: pageId,
           properties: {
@@ -421,13 +502,15 @@ async function processVacationRequests() {
               rich_text: [
                 {
                   type: "text",
-                  text: { content: REVIEW_STATUS_NAME },
+                  text: { content: currentStatus || "" },
                 },
               ],
             },
           },
         });
-        console.log("✔ Updated email flag to 'تحت المراجعة'.");
+        console.log(
+          `✔ Updated email flag to current status "${currentStatus}".`
+        );
       } catch (err) {
         console.error(
           "❌ Error sending email or updating email flag:",
