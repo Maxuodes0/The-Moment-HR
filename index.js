@@ -303,6 +303,7 @@ async function sendEmailToEmployee(toEmail, employeeName, info, status) {
 
 // ========================
 // جلب الموظف من Employees DB عن طريق رقم الهوية
+// مع رصيد الإجازة المستحق (Formula)
 // ========================
 
 async function findEmployeeByNationalId(nationalId) {
@@ -331,8 +332,10 @@ async function findEmployeeByNationalId(nationalId) {
     }
 
     const page = response.results[0];
-    const nameProp = page.properties["اسم الموظف"];
-    const emailProp = page.properties["البريد الإلكتروني"];
+    const props = page.properties;
+
+    const nameProp = props["اسم الموظف"];
+    const emailProp = props["البريد الإلكتروني"];
 
     const name =
       nameProp &&
@@ -342,11 +345,18 @@ async function findEmployeeByNationalId(nationalId) {
 
     const email = emailProp?.email || null;
 
+    // 🆕 رصيد الإجازة المستحق (Formula في DB الموظفين)
+    const vacationBalanceProp = props["رصيد الاجازة المستحق"];
+    const vacationBalance =
+      vacationBalanceProp?.formula?.number ?? null;
+
     console.log(
-      `✔ Found employee "${name}" (email: ${email || "N/A"}) for رقم الهوية = ${nationalId}`
+      `✔ Found employee "${name}" (email: ${email || "N/A"}, vacation balance: ${
+        vacationBalance ?? "N/A"
+      }) for رقم الهوية = ${nationalId}`
     );
 
-    return { id: page.id, name, email };
+    return { id: page.id, name, email, vacationBalance };
   } catch (err) {
     console.error("❌ Error finding employee:", err.message);
     return null;
@@ -394,12 +404,14 @@ async function processVacationRequests() {
       // جلب بيانات الموظف
       let employeeName = null;
       let employeeEmail = null;
+      let vacationBalance = null; // 🆕 رصيد الإجازة المستحق من DB الموظفين
 
       if (nationalId) {
         const employee = await findEmployeeByNationalId(nationalId);
         if (employee) {
           employeeName = employee.name;
           employeeEmail = employee.email;
+          vacationBalance = employee.vacationBalance;
         }
       }
 
@@ -425,8 +437,10 @@ async function processVacationRequests() {
         backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
       };
 
-      // تجهيز اسم الموظف في صفحة الطلب
+      // تجهيز الخصائص التي سيتم تحديثها في صفحة طلب الإجازة
       const updateProps = {};
+
+      // 📝 اسم الموظف
       if (employeeName) {
         updateProps["اسم الموظف"] = {
           title: [
@@ -438,13 +452,22 @@ async function processVacationRequests() {
         };
       }
 
+      // 🆕 رصيد الإجازة المستحق - رقم في DB الإجازات
+      if (vacationBalance !== null && vacationBalance !== undefined) {
+        updateProps["رصيد الاجازة المستحق"] = {
+          number: vacationBalance,
+        };
+      }
+
       if (Object.keys(updateProps).length > 0) {
         try {
           await notion.pages.update({
             page_id: pageId,
             properties: updateProps,
           });
-          console.log("✔ Updated vacation request (name).");
+          console.log(
+            "✔ Updated vacation request (name / vacation balance)."
+          );
         } catch (err) {
           console.error(
             `❌ Error updating vacation request ${pageId}:`,
