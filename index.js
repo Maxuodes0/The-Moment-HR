@@ -1,9 +1,9 @@
 import { Client } from "@notionhq/client";
 import nodemailer from "nodemailer";
 
-// =======================================
+// ========================
 // إعداد Notion
-// =======================================
+// ========================
 
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
@@ -12,13 +12,12 @@ const notion = new Client({
 const EMPLOYEES_DB_ID = process.env.NOTION_DB_EMPLOYEES;
 const VACATION_DB_ID = process.env.VACATION_DB_ID;
 
-// القيم المستخدمة في الحقول
 const REVIEW_STATUS_NAME = "تحت المراجعة";
 const EMAIL_FLAG_PROPERTY = "هل تم ارسال ايميل؟";
 
-// =======================================
+// ========================
 // توابع مساعدة للتواريخ
-// =======================================
+// ========================
 
 function formatDate(dateStr) {
   if (!dateStr) return "غير محدد";
@@ -36,9 +35,9 @@ function addOneDay(dateStr) {
   return d.toISOString().split("T")[0];
 }
 
-// =======================================
-// قالب الإيميل HTML (بتصميم tHe MOMENT)
-// =======================================
+// ========================
+// قالب HTML للإيميل (تصميم tHe MOMENT)
+// ========================
 
 function buildVacationRequestHtml({
   employeeName,
@@ -173,9 +172,9 @@ function buildVacationRequestHtml({
 `;
 }
 
-// =======================================
-// إعداد SMTP (Gmail / Workspace)
-// =======================================
+// ========================
+// إعداد SMTP (لازم يجي قبل sendEmailToEmployee)
+// ========================
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -187,7 +186,10 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// ========================
 // إرسال الإيميل
+// ========================
+
 async function sendEmailToEmployee(toEmail, employeeName, info) {
   if (!toEmail) {
     console.log("⚠ لا يوجد ايميل في الطلب، لن يتم ارسال ايميل.");
@@ -220,21 +222,21 @@ async function sendEmailToEmployee(toEmail, employeeName, info) {
     text: `تم استلام طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}.`,
     html,
     attachments: [
-  {
-    filename: "themoment-header.png",
-    path: "./assets/themoment-header.png", // ✅ هذا التعديل المهم
-    cid: "themoment-header",              // لازم يطابق src="cid:themoment-header"
-  },
-],
-
+      {
+        filename: "themoment-header.png",
+        path: "./assets/themoment-header.png",
+        cid: "themoment-header",
+      },
+    ],
+  };
 
   await transporter.sendMail(mailOptions);
   console.log(`✔ Email sent to ${toEmail}`);
 }
 
-// =======================================
+// ========================
 // جلب الموظف من Employees DB عن طريق رقم الهوية
-// =======================================
+// ========================
 
 async function findEmployeeByNationalId(nationalId) {
   if (!EMPLOYEES_DB_ID) {
@@ -284,9 +286,9 @@ async function findEmployeeByNationalId(nationalId) {
   }
 }
 
-// =======================================
+// ========================
 // معالجة طلبات الإجازة
-// =======================================
+// ========================
 
 async function processVacationRequests() {
   if (!VACATION_DB_ID) {
@@ -299,7 +301,7 @@ async function processVacationRequests() {
   try {
     const response = await notion.databases.query({
       database_id: VACATION_DB_ID,
-      page_size: 50, // مبدئياً أول ٥٠ طلب
+      page_size: 50,
     });
 
     console.log(`Found ${response.results.length} vacation requests.\n`);
@@ -311,7 +313,6 @@ async function processVacationRequests() {
       const nationalId = props["رقم الاحوال/الاقامة"]?.number;
       const currentStatus = props["حالة الطلب"]?.select?.name || null;
       const vacationEmail = props["الايميل"]?.email || null;
-
       const emailFlag =
         props[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
 
@@ -323,9 +324,7 @@ async function processVacationRequests() {
           `علامة الإيميل الحالية: ${emailFlag || "فارغ"}`
       );
 
-      const needsStatusUpdate = currentStatus !== REVIEW_STATUS_NAME;
-
-      // جلب بيانات الموظف من Employees
+      // جلب بيانات الموظف
       let employeeName = null;
       let employeeEmail = null;
 
@@ -335,13 +334,11 @@ async function processVacationRequests() {
           employeeName = employee.name;
           employeeEmail = employee.email;
         }
-      } else {
-        console.log("⚠ لا يوجد رقم احوال/اقامة في هذا الطلب.");
       }
 
       const finalEmail = vacationEmail || employeeEmail || null;
 
-      // بيانات الإجازة من الداتابيس
+      // بيانات الإجازة
       const startRaw = props["تاريخ بداية الاجازة"]?.date?.start || null;
       const endRaw =
         props["تاريخ نهاية الاجازة"]?.date?.end ||
@@ -361,34 +358,10 @@ async function processVacationRequests() {
         backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
       };
 
-      const hasName = !!employeeName;
-      const hasDates = !!startRaw && !!endRaw;
-
-      if (!hasName) {
-        console.log("⚠ لن يتم ارسال ايميل لهذا الطلب لأنه بدون اسم موظف (لم يتم إيجاده في Employees).");
-      }
-      if (!finalEmail) {
-        console.log("⚠ لن يتم ارسال ايميل لهذا الطلب لأنه لا يوجد ايميل (لا في الطلب ولا في الموظف).");
-      }
-      if (!hasDates) {
-        console.log("⚠ لن يتم ارسال ايميل لهذا الطلب لأنه ناقص تواريخ بداية/نهاية.");
-      }
-
-      // نرسل ايميل فقط إذا:
-      // - فيه ايميل
-      // - فيه اسم
-      // - فيه تواريخ
-      // - لم يسبق إرسال ايميل بنفس الحالة
-      const shouldSendEmail =
-        !!finalEmail &&
-        hasName &&
-        hasDates &&
-        emailFlag !== REVIEW_STATUS_NAME;
-
-      // نجهز خصائص التحديث (حالة الطلب + اسم الموظف)
+      // تجهيز تحديث حالة الطلب واسم الموظف
       const updateProps = {};
 
-      if (needsStatusUpdate) {
+      if (currentStatus !== REVIEW_STATUS_NAME) {
         updateProps["حالة الطلب"] = {
           select: { name: REVIEW_STATUS_NAME },
         };
@@ -405,7 +378,6 @@ async function processVacationRequests() {
         };
       }
 
-      // أولاً: نحدّث حالة الطلب واسم الموظف إذا في شيء يتحدث
       if (Object.keys(updateProps).length > 0) {
         try {
           await notion.pages.update({
@@ -419,42 +391,48 @@ async function processVacationRequests() {
             err.message
           );
         }
-      } else {
-        console.log("لا يوجد تحديث على حالة الطلب أو اسم الموظف.");
       }
 
-      // ثانياً: إرسال الإيميل إن لزم
-      if (shouldSendEmail) {
-        try {
-          await sendEmailToEmployee(finalEmail, employeeName, vacationInfo);
+      // نرسل ايميل فقط إذا:
+      // - ما سبق وأرسلنا لنفس الحالة (emailFlag !== REVIEW_STATUS_NAME)
+      // - وفيه ايميل واسم وتواريخ
+      const shouldSendEmail =
+        emailFlag !== REVIEW_STATUS_NAME &&
+        !!finalEmail &&
+        !!employeeName &&
+        !!startRaw &&
+        !!endRaw;
 
-          // بعد ارسال الإيميل بنجاح نحدّث علامة الإيميل
-          try {
-            await notion.pages.update({
-              page_id: pageId,
-              properties: {
-                [EMAIL_FLAG_PROPERTY]: {
-                  rich_text: [
-                    {
-                      type: "text",
-                      text: { content: REVIEW_STATUS_NAME },
-                    },
-                  ],
+      if (!shouldSendEmail) {
+        console.log(
+          "لن يتم ارسال ايميل لهذا الطلب (الشروط غير مكتملة أو تم الإرسال سابقاً)."
+        );
+        continue;
+      }
+
+      try {
+        await sendEmailToEmployee(finalEmail, employeeName, vacationInfo);
+
+        // تحديث علامة الإيميل بعد الإرسال
+        await notion.pages.update({
+          page_id: pageId,
+          properties: {
+            [EMAIL_FLAG_PROPERTY]: {
+              rich_text: [
+                {
+                  type: "text",
+                  text: { content: REVIEW_STATUS_NAME },
                 },
-              },
-            });
-            console.log("✔ Updated email flag to 'تحت المراجعة'.");
-          } catch (err) {
-            console.error(
-              `❌ Error updating email flag for ${pageId}:`,
-              err.message
-            );
-          }
-        } catch (err) {
-          console.error("❌ Error sending email:", err.message);
-        }
-      } else {
-        console.log("لن يتم ارسال ايميل لهذا الطلب (الشروط غير مكتملة أو تم الإرسال سابقاً).");
+              ],
+            },
+          },
+        });
+        console.log("✔ Updated email flag to 'تحت المراجعة'.");
+      } catch (err) {
+        console.error(
+          "❌ Error sending email or updating email flag:",
+          err.message
+        );
       }
     }
   } catch (err) {
@@ -462,9 +440,9 @@ async function processVacationRequests() {
   }
 }
 
-// =======================================
+// ========================
 // Main
-// =======================================
+// ========================
 
 async function main() {
   if (!process.env.NOTION_TOKEN) {
