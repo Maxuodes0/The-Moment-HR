@@ -67,14 +67,13 @@ function buildVacationEmailHtml({
     mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
     introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
     statusLine = `
-      نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وحالته الآن
-      <strong>موافقة</strong> من قبل فريق الموارد البشرية في
-      <strong>The Moment</strong>.
+     <strong>موافقة</strong> نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وحالته الآن
+     <strong>The Moment</strong> من قبل فريق الموارد البشرية في
       يمكنك الالتزام بالتواريخ الموضحة أدناه، وفي حال وجود أي تعديل يُرجى التنسيق مع قسم الموارد البشرية.
     `;
   } else if (status === STATUS_REJECTED) {
     mainTitle = "بشأن طلب الإجازة الخاص بك";
-    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
+    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>`;
     statusLine = `
       نود إبلاغك بأنه بعد مراجعة طلب الإجازة الذي قمت بتقديمه، فإن حالته الآن
       <strong>مرفوضة</strong>.
@@ -215,7 +214,7 @@ function buildVacationEmailHtml({
             <tr>
               <td style="padding:16px 24px 24px 24px; font-size:11px; line-height:1.5; color:#aaaaaa; text-align:right; border-top:1px solid #333;">
                 © The Moment. جميع الحقوق محفوظة.<br/>
-                هذا البريد أُرسِل تلقائيًا من نظام إدارة الإجازات. في حال وجود استفسار، يرجى التواصل مع قسم الموارد البشرية.
+                هذا البريد أُرسِل  من نظام إدارة الإجازات. في حال وجود استفسار، يرجى التواصل مع قسم الموارد البشرية.
               </td>
             </tr>
 
