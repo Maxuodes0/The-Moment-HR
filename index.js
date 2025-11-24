@@ -1,9 +1,9 @@
 import { Client } from "@notionhq/client";
 import nodemailer from "nodemailer";
 
-// --------------------------------------
+// ============================================
 // إعداد Notion
-// --------------------------------------
+// ============================================
 const notion = new Client({
   auth: process.env.NOTION_TOKEN,
 });
@@ -14,9 +14,9 @@ const VACATION_DB_ID = process.env.VACATION_DB_ID;
 const REVIEW_STATUS_NAME = "تحت المراجعة";
 const EMAIL_FLAG_PROPERTY = "هل تم ارسال ايميل؟";
 
-// --------------------------------------
+// ============================================
 // أدوات للتواريخ
-// --------------------------------------
+// ============================================
 function formatDate(dateStr) {
   if (!dateStr) return "غير محدد";
   return new Date(dateStr).toLocaleDateString("ar-SA", {
@@ -33,9 +33,9 @@ function addOneDay(dateStr) {
   return d.toISOString().split("T")[0];
 }
 
-// --------------------------------------
-// قالب الإيميل HTML
-// --------------------------------------
+// ============================================
+// قالب الإيميل HTML محسّن للموبايل والويب
+// ============================================
 function buildVacationRequestHtml({
   employeeName,
   vacationType,
@@ -48,87 +48,476 @@ function buildVacationRequestHtml({
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8" />
-<title>إشعار استلام طلب الإجازة - tHe MOMENT</title>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>إشعار استلام طلب الإجازة - tHe MOMENT</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      background: linear-gradient(135deg, #f2701d 0%, #120704 100%);
+      font-family: 'Segoe UI', 'Arial', sans-serif;
+      direction: rtl;
+      text-align: right;
+      padding: 16px;
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .container {
+      max-width: 650px;
+      width: 100%;
+      margin: 0 auto;
+    }
+
+    .email-wrapper {
+      background: #0a0a0a;
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(242, 112, 29, 0.2);
+    }
+
+    /* =========== Header =========== */
+    .header {
+      background: linear-gradient(135deg, #f2701d 0%, #ff8c42 50%, #1f1f1f 100%);
+      padding: 48px 24px;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .header::before {
+      content: '';
+      position: absolute;
+      width: 250px;
+      height: 250px;
+      background: radial-gradient(circle, rgba(255, 255, 255, 0.1) 0%, transparent 70%);
+      border-radius: 50%;
+      top: -80px;
+      right: -80px;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .logo {
+      font-size: 44px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+      margin-bottom: 12px;
+      line-height: 1.2;
+    }
+
+    .logo .the {
+      color: #ffffff;
+      font-style: italic;
+      font-weight: 800;
+    }
+
+    .logo .moment {
+      color: #ffffff;
+      font-weight: 900;
+      letter-spacing: 2px;
+      display: block;
+      font-size: 48px;
+    }
+
+    .logo-accent {
+      width: 60px;
+      height: 4px;
+      background: linear-gradient(90deg, #f2701d, #ff8c42);
+      margin: 10px auto;
+      border-radius: 2px;
+    }
+
+    .subtitle {
+      font-size: 13px;
+      color: #ffd2a3;
+      letter-spacing: 0.8px;
+      font-weight: 500;
+    }
+
+    /* =========== Content =========== */
+    .content {
+      padding: 40px 24px;
+      background: #0f0f0f;
+    }
+
+    .status-badge {
+      display: inline-block;
+      background: rgba(242, 112, 29, 0.15);
+      border: 2px solid #f2701d;
+      color: #f2701d;
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: bold;
+      margin-bottom: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .greeting {
+      font-size: 22px;
+      font-weight: 700;
+      color: #ffffff;
+      margin-bottom: 20px;
+      line-height: 1.5;
+    }
+
+    .greeting .emoji {
+      margin-left: 8px;
+      font-size: 24px;
+    }
+
+    .message {
+      font-size: 15px;
+      color: #d0d0d0;
+      line-height: 1.8;
+      margin-bottom: 16px;
+      text-align: justify;
+    }
+
+    .highlight {
+      color: #f2701d;
+      font-weight: 700;
+    }
+
+    .details-section {
+      margin-top: 30px;
+      margin-bottom: 20px;
+    }
+
+    .details-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #f2701d;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .details-title::before {
+      content: '◆';
+      font-size: 10px;
+      display: inline-block;
+    }
+
+    .details-box {
+      background: linear-gradient(135deg, rgba(242, 112, 29, 0.12) 0%, rgba(242, 112, 29, 0.04) 100%);
+      border: 2px solid rgba(242, 112, 29, 0.45);
+      border-radius: 10px;
+      padding: 18px;
+      margin-bottom: 20px;
+      overflow: hidden;
+    }
+
+    .detail-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid rgba(242, 112, 29, 0.15);
+      align-items: center;
+    }
+
+    .detail-row:last-child {
+      border-bottom: none;
+      padding-bottom: 8px;
+    }
+
+    .detail-row:first-child {
+      padding-top: 0;
+    }
+
+    .detail-label {
+      font-weight: 700;
+      color: #ffb87d;
+      font-size: 13px;
+    }
+
+    .detail-value {
+      color: #ffffff;
+      font-size: 14px;
+      font-weight: 500;
+      word-break: break-word;
+    }
+
+    .closing-message {
+      font-size: 14px;
+      color: #d0d0d0;
+      line-height: 1.8;
+      margin-top: 20px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(242, 112, 29, 0.2);
+    }
+
+    .signature {
+      font-size: 13px;
+      color: #ffb87d;
+      margin-top: 24px;
+      padding-top: 15px;
+      border-top: 1px solid rgba(242, 112, 29, 0.25);
+      font-weight: 500;
+      line-height: 1.8;
+    }
+
+    .signature strong {
+      display: block;
+      color: #f2701d;
+      font-weight: 700;
+      margin-top: 8px;
+    }
+
+    /* =========== Footer =========== */
+    .footer {
+      background: #000000;
+      padding: 16px 24px;
+      font-size: 11px;
+      color: #777777;
+      border-top: 1px solid rgba(242, 112, 29, 0.2);
+      text-align: center;
+      line-height: 1.6;
+    }
+
+    /* =========== Mobile Responsive =========== */
+    @media (max-width: 600px) {
+      body {
+        padding: 12px;
+        font-size: 14px;
+      }
+
+      .email-wrapper {
+        border-radius: 10px;
+      }
+
+      .header {
+        padding: 32px 16px;
+      }
+
+      .header::before {
+        width: 180px;
+        height: 180px;
+        top: -60px;
+        right: -60px;
+      }
+
+      .logo {
+        font-size: 36px;
+        letter-spacing: 1px;
+      }
+
+      .logo .moment {
+        font-size: 40px;
+        letter-spacing: 1.5px;
+      }
+
+      .logo-accent {
+        width: 50px;
+        height: 3px;
+      }
+
+      .subtitle {
+        font-size: 12px;
+      }
+
+      .content {
+        padding: 28px 16px;
+      }
+
+      .greeting {
+        font-size: 18px;
+        margin-bottom: 16px;
+      }
+
+      .greeting .emoji {
+        font-size: 20px;
+      }
+
+      .message {
+        font-size: 14px;
+        line-height: 1.7;
+        margin-bottom: 14px;
+      }
+
+      .details-title {
+        font-size: 14px;
+        margin-bottom: 12px;
+      }
+
+      .details-box {
+        padding: 14px;
+        margin-bottom: 16px;
+      }
+
+      .detail-row {
+        grid-template-columns: 1fr;
+        gap: 4px;
+        padding: 10px 0;
+      }
+
+      .detail-label {
+        font-size: 12px;
+        color: #ffb87d;
+      }
+
+      .detail-value {
+        font-size: 13px;
+        color: #ffffff;
+        margin-top: 2px;
+      }
+
+      .closing-message {
+        font-size: 13px;
+        margin-top: 16px;
+        padding-top: 12px;
+      }
+
+      .signature {
+        font-size: 12px;
+        margin-top: 18px;
+        padding-top: 12px;
+      }
+
+      .footer {
+        padding: 12px 16px;
+        font-size: 10px;
+      }
+
+      .status-badge {
+        font-size: 11px;
+        padding: 6px 12px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .header {
+        padding: 24px 12px;
+      }
+
+      .logo {
+        font-size: 28px;
+      }
+
+      .logo .moment {
+        font-size: 32px;
+      }
+
+      .content {
+        padding: 20px 12px;
+      }
+
+      .greeting {
+        font-size: 16px;
+      }
+
+      .message {
+        font-size: 13px;
+      }
+
+      .details-box {
+        padding: 12px;
+      }
+    }
+  </style>
 </head>
-<body style="margin:0;padding:0;background:#111;font-family:Arial,sans-serif;direction:rtl;text-align:right;">
-  <div style="width:100%;padding:20px 0;background:#111;">
-    <div style="max-width:650px;margin:0 auto;background:#1a1a1a;border-radius:12px;overflow:hidden;box-shadow:0 6px 20px rgba(0,0,0,0.35);color:#f9f9f9;">
-      
-      <!-- Header -->
-      <div style="background:linear-gradient(90deg,#f2701d,#120704);padding:24px 30px;color:#fff;">
-        <div style="font-size:26px;font-weight:bold;letter-spacing:1px;">
-          <span style="color:#f2701d;">tHe</span>
-          <span style="color:#ffffff;"> MOMENT</span>
-        </div>
-        <div style="margin-top:8px;font-size:13px;color:#f5d0b5;">
-          نظام إدارة الإجازات – إشعار استلام طلب
+<body>
+  <div class="container">
+    <div class="email-wrapper">
+      <!-- ========== Header ========== -->
+      <div class="header">
+        <div class="header-content">
+          <div class="logo">
+            <span class="the">tHe</span>
+            <span class="moment">MOMENT</span>
+          </div>
+          <div class="logo-accent"></div>
+          <div class="subtitle">نظام إدارة الموارد البشرية</div>
         </div>
       </div>
 
-      <!-- Content -->
-      <div style="padding:26px 30px 30px 30px;background:#151515;">
-        <h2 style="margin:0 0 10px;font-size:20px;color:#ffffff;">
-          تم استلام طلب الإجازة الخاص بك
-        </h2>
+      <!-- ========== Content ========== -->
+      <div class="content">
+        <!-- Status Badge -->
+        <div class="status-badge">✓ تم الاستلام</div>
 
-        <p style="margin:8px 0;font-size:14px;line-height:1.8;color:#f0f0f0;">
+        <!-- Greeting -->
+        <div class="greeting">
+          <span class="emoji">👋</span>مرحباً بك
+        </div>
+
+        <!-- Main Message -->
+        <div class="message">
           عزيزي <strong>${employeeName || "الموظف"}</strong>،
-        </p>
-
-        <p style="margin:8px 0;font-size:14px;line-height:1.8;color:#f0f0f0;">
-          نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وتم تحويل حالته إلى
-          <strong>تحت المراجعة</strong> من قبل قسم الموارد البشرية.
-        </p>
-
-        <div style="margin-top:22px;font-size:15px;font-weight:bold;color:#f7b07b;">
-          تفاصيل الطلب
         </div>
 
-        <div style="margin:10px 0 0;padding:12px 14px;border-radius:8px;background:#1f1f1f;border:1px solid rgba(242,112,29,0.6);font-size:14px;">
-          <div style="margin:4px 0;">
-            <span style="font-weight:bold;color:#ffd2a3;">نوع الإجازة:</span>
-            ${vacationType || "غير محدد"}
-          </div>
-          <div style="margin:4px 0;">
-            <span style="font-weight:bold;color:#ffd2a3;">من تاريخ:</span>
-            ${startDate || "غير محدد"}
-          </div>
-          <div style="margin:4px 0;">
-            <span style="font-weight:bold;color:#ffd2a3;">إلى تاريخ:</span>
-            ${endDate || "غير محدد"}
-          </div>
-          <div style="margin:4px 0;">
-            <span style="font-weight:bold;color:#ffd2a3;">عدد الأيام:</span>
-            ${
-              Number.isFinite(days)
-                ? days + " أيام"
-                : "غير محسوب"
-            }
-          </div>
-          <div style="margin:4px 0;">
-            <span style="font-weight:bold;color:#ffd2a3;">تاريخ العودة المتوقع:</span>
-            ${backToWork || "سيتم تحديده لاحقاً"}
+        <div class="message">
+          شكراً لاستخدامك نظام tHe MOMENT. تم <span class="highlight">استلام طلب الإجازة الخاص بك بنجاح</span> وتم تحويل حالته إلى <span class="highlight">تحت المراجعة</span> من قبل قسم الموارد البشرية.
+        </div>
+
+        <!-- Details Section -->
+        <div class="details-section">
+          <div class="details-title">📋 تفاصيل الطلب</div>
+          <div class="details-box">
+            <div class="detail-row">
+              <div class="detail-label">نوع الإجازة</div>
+              <div class="detail-value">${vacationType || "غير محدد"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">تاريخ البداية</div>
+              <div class="detail-value">${startDate || "غير محدد"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">تاريخ النهاية</div>
+              <div class="detail-value">${endDate || "غير محدد"}</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">عدد الأيام</div>
+              <div class="detail-value">${
+                Number.isFinite(days)
+                  ? days + " أيام"
+                  : "غير محسوب"
+              }</div>
+            </div>
+            <div class="detail-row">
+              <div class="detail-label">تاريخ العودة المتوقع</div>
+              <div class="detail-value">${backToWork || "سيتم تحديده"}</div>
+            </div>
           </div>
         </div>
 
-        <p style="margin:16px 0 8px;font-size:14px;line-height:1.8;color:#f0f0f0;">
-          سيتم إشعارك فور الانتهاء من مراجعة الطلب واعتماده أو طلب أي معلومات إضافية.
-        </p>
+        <!-- Closing Message -->
+        <div class="closing-message">
+          <strong>سيتم إشعارك فور الانتهاء من مراجعة الطلب</strong> واعتماده أو طلب أي معلومات إضافية من قبل فريقنا.
+        </div>
 
-        <p style="margin:8px 0;font-size:14px;line-height:1.8;color:#f0f0f0;">
-          نشكرك على استخدامك نظام tHe MOMENT للموارد البشرية، ونتمنى لك إجازة سعيدة.
-        </p>
+        <div class="closing-message" style="border-top: none; padding-top: 0; margin-top: 12px;">
+          نتمنى لك إجازة سعيدة وممتعة. 🌴
+        </div>
 
-        <p style="margin-top:20px;font-size:14px;line-height:1.8;color:#f0f0f0;">
+        <!-- Signature -->
+        <div class="signature">
           مع خالص التحية،<br/>
-          قسم الموارد البشرية – tHe MOMENT
-        </p>
+          <strong>قسم الموارد البشرية</strong>
+          tHe MOMENT HR Team
+        </div>
       </div>
 
-      <!-- Footer -->
-      <div style="padding:14px 30px 18px;background:#111;font-size:11px;color:#aaaaaa;border-top:1px solid #222;">
-        هذا البريد أُرسِل تلقائيًا من نظام إدارة الإجازات. في حال وجود استفسار، يرجى التواصل مع قسم الموارد البشرية.
+      <!-- ========== Footer ========== -->
+      <div class="footer">
+        هذا البريد أُرسِل تلقائيًا من نظام إدارة الإجازات. في حال وجود استفسار أو مشكلة، يرجى التواصل مع قسم الموارد البشرية.
       </div>
     </div>
   </div>
@@ -137,9 +526,9 @@ function buildVacationRequestHtml({
 `;
 }
 
-// --------------------------------------
+// ============================================
 // إعداد SMTP (Gmail / Workspace)
-// --------------------------------------
+// ============================================
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: Number(process.env.SMTP_PORT || 587),
@@ -150,11 +539,13 @@ const transporter = nodemailer.createTransport({
   },
 });
 
+// ============================================
 // إرسال الإيميل
+// ============================================
 async function sendEmailToEmployee(toEmail, employeeName, info) {
   if (!toEmail) {
     console.log("⚠ لا يوجد ايميل في الطلب، لن يتم ارسال ايميل.");
-    return;
+    return false;
   }
 
   const from = process.env.FROM_EMAIL || process.env.SMTP_USER;
@@ -171,18 +562,24 @@ async function sendEmailToEmployee(toEmail, employeeName, info) {
   const mailOptions = {
     from,
     to: toEmail,
-    subject: "تم استلام طلب الإجازة الخاص بك",
+    subject: "✓ تم استلام طلب الإجازة الخاص بك - tHe MOMENT",
     text: `تم استلام طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}.`,
     html,
   };
 
-  await transporter.sendMail(mailOptions);
-  console.log(`✔ Email sent to ${toEmail}`);
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`✔ Email sent successfully to ${toEmail}`);
+    return true;
+  } catch (err) {
+    console.error(`❌ Error sending email to ${toEmail}:`, err.message);
+    return false;
+  }
 }
 
-// --------------------------------------
+// ============================================
 // جلب الموظف من Employees DB عن طريق رقم الهوية
-// --------------------------------------
+// ============================================
 async function findEmployeeByNationalId(nationalId) {
   if (!EMPLOYEES_DB_ID) {
     console.error("❌ NOTION_DB_EMPLOYEES is missing.");
@@ -204,7 +601,7 @@ async function findEmployeeByNationalId(nationalId) {
     });
 
     if (response.results.length === 0) {
-      console.log(`❌ No employee found with رقم الهوية = ${nationalId}`);
+      console.log(`⚠ No employee found with رقم الهوية = ${nationalId}`);
       return null;
     }
 
@@ -221,7 +618,7 @@ async function findEmployeeByNationalId(nationalId) {
     const email = emailProp?.email || null;
 
     console.log(
-      `✔ Found employee "${name}" (email: ${email || "N/A"}) for رقم الهوية = ${nationalId}`
+      `✔ Found employee: "${name}" (Email: ${email || "N/A"}) for ID: ${nationalId}`
     );
 
     return { id: page.id, name, email };
@@ -231,182 +628,214 @@ async function findEmployeeByNationalId(nationalId) {
   }
 }
 
-// --------------------------------------
+// ============================================
 // معالجة طلبات الإجازة
-// --------------------------------------
+// ============================================
 async function processVacationRequests() {
   if (!VACATION_DB_ID) {
     console.error("❌ VACATION_DB_ID is missing.");
     return;
   }
 
-  console.log("===== Processing vacation requests =====");
+  console.log("🚀 Starting vacation request processing...\n");
 
   try {
     const response = await notion.databases.query({
       database_id: VACATION_DB_ID,
-      page_size: 50, // مبدئياً أول 50 طلب
+      page_size: 50,
     });
 
-    console.log(`Found ${response.results.length} vacation requests.\n`);
+    console.log(`📊 Found ${response.results.length} vacation requests.\n`);
+
+    if (response.results.length === 0) {
+      console.log("✓ No vacation requests to process.\n");
+      return;
+    }
+
+    let processed = 0;
+    let emailsSent = 0;
+    let errors = 0;
 
     for (const page of response.results) {
-      const pageId = page.id;
-      const props = page.properties;
+      try {
+        const pageId = page.id;
+        const props = page.properties;
 
-      const nationalId = props["رقم الاحوال/الاقامة"]?.number;
-      const currentStatus = props["حالة الطلب"]?.select?.name || null;
-      const vacationEmail = props["الايميل"]?.email || null;
+        const nationalId = props["رقم الاحوال/الاقامة"]?.number;
+        const currentStatus = props["حالة الطلب"]?.select?.name || null;
+        const vacationEmail = props["الايميل"]?.email || null;
+        const emailFlag = props[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
 
-      const emailFlag =
-        props[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
+        console.log(`\n📝 Processing Request ID: ${pageId}`);
+        console.log(`   National ID: ${nationalId || "N/A"}`);
+        console.log(`   Current Status: ${currentStatus || "Not Set"}`);
+        console.log(`   Email: ${vacationEmail || "N/A"}`);
+        console.log(`   Email Flag: ${emailFlag || "Empty"}`);
 
-      console.log(
-        `\n--- Vacation request ${pageId} ---\n` +
-          `رقم الاحوال/الاقامة: ${nationalId ?? "N/A"}\n` +
-          `حالة الطلب الحالية: ${currentStatus ?? "غير محددة"}\n` +
-          `الايميل في الطلب: ${vacationEmail || "N/A"}\n` +
-          `علامة الإيميل الحالية: ${emailFlag || "فارغ"}`
-      );
+        const needsStatusUpdate = currentStatus !== REVIEW_STATUS_NAME;
 
-      const needsStatusUpdate = currentStatus !== REVIEW_STATUS_NAME;
+        // جلب بيانات الموظف
+        let employeeName = null;
+        let employeeEmail = null;
 
-      // جلب الموظف
-      let employeeName = null;
-      let employeeEmail = null;
-
-      if (nationalId) {
-        const employee = await findEmployeeByNationalId(nationalId);
-        if (employee) {
-          employeeName = employee.name;
-          employeeEmail = employee.email;
+        if (nationalId) {
+          const employee = await findEmployeeByNationalId(nationalId);
+          if (employee) {
+            employeeName = employee.name;
+            employeeEmail = employee.email;
+          }
+        } else {
+          console.log("   ⚠ No National ID provided.");
         }
-      } else {
-        console.log("⚠ لا يوجد رقم احوال/اقامة في هذا الطلب.");
-      }
 
-      const finalEmail = vacationEmail || employeeEmail || null;
+        const finalEmail = vacationEmail || employeeEmail || null;
 
-      // بيانات الإجازة
-      const startRaw = props["تاريخ بداية الاجازة"]?.date?.start || null;
-      const endRaw =
-        props["تاريخ نهاية الاجازة"]?.date?.end ||
-        props["تاريخ نهاية الاجازة"]?.date?.start ||
-        startRaw;
+        // جلب بيانات الإجازة
+        const startRaw = props["تاريخ بداية الاجازة"]?.date?.start || null;
+        const endRaw =
+          props["تاريخ نهاية الاجازة"]?.date?.end ||
+          props["تاريخ نهاية الاجازة"]?.date?.start ||
+          startRaw;
 
-      const days =
-        props["عدد ايام الاجازة المطلوب"]?.formula?.number ?? null;
+        const days = props["عدد ايام الاجازة المطلوب"]?.formula?.number ?? null;
+        const backToWorkRaw = addOneDay(endRaw);
 
-      const backToWorkRaw = addOneDay(endRaw);
-
-      const vacationInfo = {
-        vacationType: props["نوع الاجازة"]?.select?.name || null,
-        startDate: formatDate(startRaw),
-        endDate: formatDate(endRaw),
-        days,
-        backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
-      };
-
-      // بناء خصائص التحديث (حالة الطلب + اسم الموظف)
-      const updateProps = {};
-
-      if (needsStatusUpdate) {
-        updateProps["حالة الطلب"] = {
-          select: { name: REVIEW_STATUS_NAME },
+        const vacationInfo = {
+          vacationType: props["نوع الاجازة"]?.select?.name || null,
+          startDate: formatDate(startRaw),
+          endDate: formatDate(endRaw),
+          days,
+          backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
         };
-      }
 
-      if (employeeName) {
-        updateProps["اسم الموظف"] = {
-          title: [
-            {
-              type: "text",
-              text: { content: employeeName },
-            },
-          ],
-        };
-      }
+        // بناء خصائص التحديث
+        const updateProps = {};
 
-      // لو ما في شيء نحدثه ولا راح نرسل ايميل → نكمل على الطلب اللي بعده
-      const shouldSendEmail =
-        !!finalEmail && emailFlag !== REVIEW_STATUS_NAME;
-
-      if (
-        Object.keys(updateProps).length === 0 &&
-        !shouldSendEmail
-      ) {
-        console.log("لا يوجد شيء لتحديثه لهذا الطلب.");
-        continue;
-      }
-
-      // أولاً: نحدّث حالة الطلب واسم الموظف (لو فيه شيء يتحدّث)
-      if (Object.keys(updateProps).length > 0) {
-        try {
-          await notion.pages.update({
-            page_id: pageId,
-            properties: updateProps,
-          });
-          console.log("✔ Updated vacation request (status/name).");
-        } catch (err) {
-          console.error(
-            `❌ Error updating vacation request ${pageId}:`,
-            err.message
-          );
+        if (needsStatusUpdate) {
+          updateProps["حالة الطلب"] = {
+            select: { name: REVIEW_STATUS_NAME },
+          };
         }
-      }
 
-      // ثانياً: ارسال الايميل لو لازم
-      if (shouldSendEmail) {
-        try {
-          await sendEmailToEmployee(finalEmail, employeeName, vacationInfo);
+        if (employeeName) {
+          updateProps["اسم الموظف"] = {
+            title: [
+              {
+                type: "text",
+                text: { content: employeeName },
+              },
+            ],
+          };
+        }
 
-          // بعد ارسال الإيميل بنجاح، نحدّث علامة الإيميل
+        const shouldSendEmail =
+          !!finalEmail && emailFlag !== REVIEW_STATUS_NAME;
+
+        if (Object.keys(updateProps).length === 0 && !shouldSendEmail) {
+          console.log("   ℹ Nothing to update for this request.");
+          continue;
+        }
+
+        // تحديث حالة الطلب واسم الموظف
+        if (Object.keys(updateProps).length > 0) {
           try {
             await notion.pages.update({
               page_id: pageId,
-              properties: {
-                [EMAIL_FLAG_PROPERTY]: {
-                  rich_text: [
-                    {
-                      type: "text",
-                      text: { content: REVIEW_STATUS_NAME },
-                    },
-                  ],
-                },
-              },
+              properties: updateProps,
             });
-            console.log("✔ Updated email flag to 'تحت المراجعة'.");
+            console.log("   ✔ Updated request status and employee name");
           } catch (err) {
-            console.error(
-              `❌ Error updating email flag for ${pageId}:`,
-              err.message
-            );
+            console.error(`   ❌ Error updating request:`, err.message);
+            errors++;
           }
-        } catch (err) {
-          console.error("❌ Error sending email:", err.message);
         }
-      } else {
-        console.log("لن يتم ارسال ايميل لهذا الطلب (إما لا يوجد ايميل أو الإيميل مسبقاً محدث).");
+
+        // إرسال الإيميل
+        if (shouldSendEmail) {
+          const emailSent = await sendEmailToEmployee(
+            finalEmail,
+            employeeName,
+            vacationInfo
+          );
+
+          if (emailSent) {
+            emailsSent++;
+
+            // تحديث علامة الإيميل
+            try {
+              await notion.pages.update({
+                page_id: pageId,
+                properties: {
+                  [EMAIL_FLAG_PROPERTY]: {
+                    rich_text: [
+                      {
+                        type: "text",
+                        text: { content: REVIEW_STATUS_NAME },
+                      },
+                    ],
+                  },
+                },
+              });
+              console.log("   ✔ Email flag updated");
+            } catch (err) {
+              console.error(`   ❌ Error updating email flag:`, err.message);
+            }
+          } else {
+            errors++;
+          }
+        } else {
+          console.log(
+            "   ℹ Email not sent (already sent or no email address)"
+          );
+        }
+
+        processed++;
+      } catch (err) {
+        console.error(`   ❌ Error processing request:`, err.message);
+        errors++;
       }
     }
+
+    console.log("\n" + "=".repeat(50));
+    console.log("📈 Processing Summary:");
+    console.log(`   ✔ Processed: ${processed}`);
+    console.log(`   ✉️  Emails Sent: ${emailsSent}`);
+    console.log(`   ❌ Errors: ${errors}`);
+    console.log("=".repeat(50) + "\n");
   } catch (err) {
     console.error("❌ Error querying vacation database:", err.message);
   }
 }
 
-// --------------------------------------
-// Main
-// --------------------------------------
+// ============================================
+// Main Function
+// ============================================
 async function main() {
   if (!process.env.NOTION_TOKEN) {
-    console.error("❌ NOTION_TOKEN is missing.");
-    return;
+    console.error("❌ NOTION_TOKEN is missing in environment variables.");
+    process.exit(1);
   }
 
-  console.log("Starting tHe MOMENT HR vacation processor...");
-  await processVacationRequests();
+  if (!EMPLOYEES_DB_ID) {
+    console.error("❌ NOTION_DB_EMPLOYEES is missing in environment variables.");
+    process.exit(1);
+  }
+
+  if (!VACATION_DB_ID) {
+    console.error("❌ VACATION_DB_ID is missing in environment variables.");
+    process.exit(1);
+  }
+
+  console.log("🎯 tHe MOMENT HR Vacation System Starting...\n");
+
+  try {
+    await processVacationRequests();
+    console.log("✅ Process completed successfully!");
+  } catch (err) {
+    console.error("❌ Fatal error:", err.message);
+    process.exit(1);
+  }
 }
 
-main().catch((err) => {
-  console.error("❌ Fatal error:", err.message);
-});
+// Run the main function
+main();
