@@ -133,7 +133,7 @@ function buildVacationEmailHtml({
                   🗂️ تفاصيل الطلب:
                 </div>
 
-                <!-- جدول تفاصيل الطلب (يمين + RTL + إيموجيات) -->
+                <!-- جدول تفاصيل الطلب -->
                 <table width="100%" border="0" cellspacing="0" cellpadding="0"
                   style="font-size:14px; line-height:1.9; color:#f2f2f2; direction:rtl; text-align:right;">
 
@@ -303,7 +303,6 @@ async function sendEmailToEmployee(toEmail, employeeName, info, status) {
 
 // ========================
 // جلب الموظف من Employees DB عن طريق رقم الهوية
-// مع رصيد الإجازة المستحق (Formula)
 // ========================
 
 async function findEmployeeByNationalId(nationalId) {
@@ -345,21 +344,117 @@ async function findEmployeeByNationalId(nationalId) {
 
     const email = emailProp?.email || null;
 
-    // 🆕 رصيد الإجازة المستحق (Formula في DB الموظفين)
-    const vacationBalanceProp = props["رصيد الاجازة المستحق"];
-    const vacationBalance =
-      vacationBalanceProp?.formula?.number ?? null;
+    // الأساس: رصيد الإجازة المستحق (فورميلا أو رقم)
+    let baseVacationBalance = null;
+
+    const formulaProp = props["رصيد الاجازة المستحق"]?.formula;
+    const numberProp = props["رصيد الاجازة المستحق"]?.number;
+
+    if (typeof formulaProp?.number === "number") {
+      baseVacationBalance = formulaProp.number;
+    } else if (typeof numberProp === "number") {
+      baseVacationBalance = numberProp;
+    }
 
     console.log(
-      `✔ Found employee "${name}" (email: ${email || "N/A"}, vacation balance: ${
-        vacationBalance ?? "N/A"
+      `✔ Found employee "${name}" (email: ${email || "N/A"}, base vacation balance: ${
+        baseVacationBalance ?? "N/A"
       }) for رقم الهوية = ${nationalId}`
     );
 
-    return { id: page.id, name, email, vacationBalance };
+    return { id: page.id, name, email, baseVacationBalance };
   } catch (err) {
     console.error("❌ Error finding employee:", err.message);
     return null;
+  }
+}
+
+// ========================
+// مجموع الإجازات الموافق عليها تراكميًا لموظف
+// ========================
+
+async function getTotalApprovedVacationDaysForEmployee(nationalId) {
+  if (!VACATION_DB_ID || !nationalId) return null;
+
+  try {
+    const response = await notion.databases.query({
+      database_id: VACATION_DB_ID,
+      filter: {
+        and: [
+          {
+            property: "رقم الاحوال/الاقامة",
+            number: {
+              equals: Number(nationalId),
+            },
+          },
+          {
+            property: "حالة الطلب",
+            select: {
+              equals: STATUS_APPROVED,
+            },
+          },
+        ],
+      },
+      page_size: 100,
+    });
+
+    let total = 0;
+
+    for (const page of response.results) {
+      const props = page.properties;
+
+      const approvedDays =
+        props["الايام الموافق عليها في الطلب الحالي"]?.formula?.number ??
+        props["عدد ايام الاجازة المطلوب"]?.formula?.number ??
+        0;
+
+      if (typeof approvedDays === "number" && Number.isFinite(approvedDays)) {
+        total += approvedDays;
+      }
+    }
+
+    console.log(
+      `✔ Total approved vacation days for رقم الاحوال/الاقامة ${nationalId}: ${total}`
+    );
+
+    return total;
+  } catch (err) {
+    console.error(
+      `❌ Error calculating total approved days for ${nationalId}:`,
+      err.message
+    );
+    return null;
+  }
+}
+
+// ========================
+// تحديث رصيد الاجازة المتبقي في قاعدة الموظفين
+// ========================
+
+async function updateEmployeeRemainingBalance(employeeId, remainingDays) {
+  if (!employeeId) return;
+  if (typeof remainingDays !== "number" || !Number.isFinite(remainingDays)) {
+    return;
+  }
+
+  try {
+    await notion.pages.update({
+      page_id: employeeId,
+      properties: {
+        "رصيد الاجازة المتبقي": {
+          number: remainingDays,
+        },
+      },
+    });
+
+    console.log(
+      `✔ Updated employee remaining vacation balance (رصيد الاجازة المتبقي) to ${remainingDays}`
+    );
+  } catch (err) {
+    console.error(
+      "❌ Error updating employee remaining balance:",
+      err.message
+    );
   }
 }
 
@@ -402,16 +497,17 @@ async function processVacationRequests() {
       );
 
       // جلب بيانات الموظف
+      let employeeRecord = null;
       let employeeName = null;
       let employeeEmail = null;
-      let vacationBalance = null; // 🆕 رصيد الإجازة المستحق من DB الموظفين
+      let baseVacationBalance = null; // رصيد الإجازة المستحق الأساس من DB الموظفين
 
       if (nationalId) {
-        const employee = await findEmployeeByNationalId(nationalId);
-        if (employee) {
-          employeeName = employee.name;
-          employeeEmail = employee.email;
-          vacationBalance = employee.vacationBalance;
+        employeeRecord = await findEmployeeByNationalId(nationalId);
+        if (employeeRecord) {
+          employeeName = employeeRecord.name;
+          employeeEmail = employeeRecord.email;
+          baseVacationBalance = employeeRecord.baseVacationBalance;
         }
       }
 
@@ -424,7 +520,7 @@ async function processVacationRequests() {
         props["تاريخ نهاية الاجازة"]?.date?.start ||
         startRaw;
 
-      const days =
+      const requestedDays =
         props["عدد ايام الاجازة المطلوب"]?.formula?.number ?? null;
 
       const backToWorkRaw = addOneDay(endRaw);
@@ -433,14 +529,30 @@ async function processVacationRequests() {
         vacationType: props["نوع الاجازة"]?.select?.name || null,
         startDate: formatDate(startRaw),
         endDate: formatDate(endRaw),
-        days,
+        days: requestedDays,
         backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
       };
+
+      // حساب المتبقي تراكميًا (من رصيد الاجازة المستحق - مجموع الإجازات الموافق عليها)
+      let remainingVacationDays = null;
+      if (
+        nationalId &&
+        typeof baseVacationBalance === "number" &&
+        Number.isFinite(baseVacationBalance)
+      ) {
+        const totalApproved = await getTotalApprovedVacationDaysForEmployee(
+          nationalId
+        );
+
+        if (typeof totalApproved === "number" && Number.isFinite(totalApproved)) {
+          remainingVacationDays = baseVacationBalance - totalApproved;
+        }
+      }
 
       // تجهيز الخصائص التي سيتم تحديثها في صفحة طلب الإجازة
       const updateProps = {};
 
-      // 📝 اسم الموظف
+      // اسم الموظف
       if (employeeName) {
         updateProps["اسم الموظف"] = {
           title: [
@@ -452,10 +564,23 @@ async function processVacationRequests() {
         };
       }
 
-      // 🆕 رصيد الإجازة المستحق - رقم في DB الإجازات
-      if (vacationBalance !== null && vacationBalance !== undefined) {
+      // رصيد الاجازة المستحق - رقم في DB الإجازات (ننسخ الأساس من DB الموظفين)
+      if (
+        typeof baseVacationBalance === "number" &&
+        Number.isFinite(baseVacationBalance)
+      ) {
         updateProps["رصيد الاجازة المستحق"] = {
-          number: vacationBalance,
+          number: baseVacationBalance,
+        };
+      }
+
+      // عدد الايام المتبقي من الاجازة - في DB الإجازات
+      if (
+        typeof remainingVacationDays === "number" &&
+        Number.isFinite(remainingVacationDays)
+      ) {
+        updateProps["عدد الايام المتبقي من الاجازة"] = {
+          number: remainingVacationDays,
         };
       }
 
@@ -466,7 +591,7 @@ async function processVacationRequests() {
             properties: updateProps,
           });
           console.log(
-            "✔ Updated vacation request (name / vacation balance)."
+            "✔ Updated vacation request (name / base balance / remaining days)."
           );
         } catch (err) {
           console.error(
@@ -474,6 +599,19 @@ async function processVacationRequests() {
             err.message
           );
         }
+      }
+
+      // تحديث رصيد الاجازة المتبقي في قاعدة الموظفين
+      if (
+        employeeRecord &&
+        employeeRecord.id &&
+        typeof remainingVacationDays === "number" &&
+        Number.isFinite(remainingVacationDays)
+      ) {
+        await updateEmployeeRemainingBalance(
+          employeeRecord.id,
+          remainingVacationDays
+        );
       }
 
       // نحدد نوع الإيميل حسب حالة الطلب الحالية
@@ -488,7 +626,7 @@ async function processVacationRequests() {
 
       // نرسل ايميل فقط إذا:
       // - الحالة الحالية واحدة من (تحت المراجعة / موافقة / مرفوضة)
-      // - حقل "هل تم ارسال ايميل؟" مختلف عن الحالة الحالية (يعني تغيير صار)
+      // - حقل "هل تم ارسال ايميل؟" مختلف عن الحالة الحالية
       // - وفيه ايميل واسم وتواريخ
       const shouldSendEmail =
         statusForEmail !== null &&
