@@ -2,7 +2,7 @@ import { Client } from "@notionhq/client";
 import nodemailer from "nodemailer";
 
 // ======================================================
-// 1) إعداد البيئة و Notion
+// 1) Notion Setup
 // ======================================================
 
 const notion = new Client({ auth: process.env.NOTION_TOKEN });
@@ -17,7 +17,7 @@ const STATUS_REJECTED = "مرفوضة";
 const EMAIL_FLAG_PROPERTY = "هل تم ارسال ايميل؟";
 
 // ======================================================
-// 2) دوال مساعدة للتواريخ
+// 2) Date Helpers
 // ======================================================
 
 function formatDate(dateStr) {
@@ -37,7 +37,7 @@ function addOneDay(dateStr) {
 }
 
 // ======================================================
-// 3) إنشاء HTML للإيميل
+// 3) EMAIL HTML — NOW 100% RTL FIXED
 // ======================================================
 
 function buildVacationEmailHtml({
@@ -57,75 +57,79 @@ function buildVacationEmailHtml({
     case STATUS_REVIEW:
       mainTitle = "تم استلام طلب الإجازة الخاص بك";
       intro = `عزيزي <strong>${employeeName}</strong>،`;
-      statusLine = `
-      نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وحالته الآن 
-      <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية.
-      `;
+      statusLine = `تم استلام طلب الإجازة وهو الآن <strong>تحت المراجعة</strong>.`;
       break;
 
     case STATUS_APPROVED:
       mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
       intro = `عزيزي <strong>${employeeName}</strong>،`;
-      statusLine = `
-     نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وتمت الموافقة عليه.
-      `;
+      statusLine = `نود إبلاغك بأنه تمت <strong>الموافقة</strong> على طلب الإجازة.`;
       break;
 
     case STATUS_REJECTED:
       mainTitle = "بشأن طلب الإجازة الخاص بك";
       intro = `عزيزي <strong>${employeeName}</strong>،`;
-      statusLine = `
-      بعد مراجعة طلب الإجازة الذي قمت بتقديمه، فإن حالته الآن 
-      <strong>مرفوضة</strong>.
-      `;
+      statusLine = `نأسف لإبلاغك بأن طلب الإجازة أصبح <strong>مرفوضًا</strong>.`;
       break;
   }
 
   return `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <body style="margin:0;padding:0;background-color:#000;color:white;font-family:Arial;">
-    <table width="100%">
+  <body style="margin:0;padding:0;background-color:#000;color:white;font-family:Arial; direction: rtl; text-align: right; unicode-bidi: bidi-override;">
+
+    <table width="100%" style="direction: rtl; unicode-bidi: bidi-override; text-align:right;">
       <tr><td align="center">
-        <table width="600" style="background:#000;max-width:100%;">
+        <table width="600" style="background:#000;max-width:100%; direction: rtl; unicode-bidi: bidi-override;">
           <tr>
             <td>
               <img src="cid:themoment-header" style="width:100%;height:auto;" />
             </td>
           </tr>
 
-          <tr><td style="padding:24px;">
-            <h1 style="margin:0 0 12px 0;">${mainTitle}</h1>
-            <p>${intro}</p>
-            <p>${statusLine}</p>
+          <tr><td style="padding:24px; direction: rtl; text-align: right; unicode-bidi: bidi-override;">
+            
+            <h1 style="margin:0 0 12px 0; direction: rtl; unicode-bidi: bidi-override;">${mainTitle}</h1>
+            <p style="direction: rtl; unicode-bidi: bidi-override;">${intro}</p>
+            <p style="direction: rtl; unicode-bidi: bidi-override;">${statusLine}</p>
 
-            <h3 style="color:#ffb37a">🗂️ تفاصيل الطلب:</h3>
+            <h3 style="color:#ffb37a; direction: rtl; unicode-bidi: bidi-override;">🗂️ تفاصيل الطلب:</h3>
 
-            <table width="100%" style="color:#ddd;">
+            <table width="100%" style="color:#ddd; direction: rtl; unicode-bidi: bidi-override; text-align:right;">
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">نوع الإجازة:</td>
                 <td>${vacationType}</td>
               </tr>
+
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">من تاريخ:</td>
                 <td>${startDate}</td>
               </tr>
+
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">إلى تاريخ:</td>
                 <td>${endDate}</td>
               </tr>
+
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">عدد الأيام:</td>
                 <td>${days} يوم</td>
               </tr>
+
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">تاريخ العودة:</td>
                 <td>${backToWork}</td>
               </tr>
             </table>
 
-            <p style="margin-top:16px;">في حال وجود أي استفسارات، يمكنك التواصل مع قسم الموارد البشرية.</p>
-            <p style="margin-top:12px;">مع التحية،<br>فريق الموارد البشرية – The Moment</p>
+            <p style="margin-top:16px; direction: rtl; unicode-bidi: bidi-override;">
+              في حال وجود أي استفسارات، يمكنك التواصل مع قسم الموارد البشرية.
+            </p>
+
+            <p style="margin-top:12px; direction: rtl; unicode-bidi: bidi-override;">
+              مع التحية،<br>فريق الموارد البشرية – The Moment
+            </p>
+
           </td></tr>
 
           <tr>
@@ -136,13 +140,14 @@ function buildVacationEmailHtml({
         </table>
       </td></tr>
     </table>
+
   </body>
 </html>
 `;
 }
 
 // ======================================================
-// 4) SMTP إعداد
+// 4) SMTP
 // ======================================================
 
 const transporter = nodemailer.createTransport({
@@ -156,7 +161,7 @@ const transporter = nodemailer.createTransport({
 });
 
 // ======================================================
-// 5) إرسال الإيميل
+// 5) SEND EMAIL
 // ======================================================
 
 async function sendEmail(to, employeeName, info, status) {
@@ -196,7 +201,7 @@ async function sendEmail(to, employeeName, info, status) {
 }
 
 // ======================================================
-// 6) جلب بيانات الموظف
+// 6) GET EMPLOYEE DATA
 // ======================================================
 
 async function getEmployee(nationalId) {
@@ -228,7 +233,7 @@ async function getEmployee(nationalId) {
 }
 
 // ======================================================
-// 7) حساب مجموع الإجازات الموافق عليها سابقًا
+// 7) GET USED DAYS
 // ======================================================
 
 async function getUsedDays(nationalId) {
@@ -258,7 +263,7 @@ async function getUsedDays(nationalId) {
 }
 
 // ======================================================
-// 8) تحديث رصيد الموظف
+// 8) UPDATE EMPLOYEE BALANCE
 // ======================================================
 
 async function updateEmployeeBalance(employeeId, remaining) {
@@ -271,7 +276,7 @@ async function updateEmployeeBalance(employeeId, remaining) {
 }
 
 // ======================================================
-// 9) معالجة الطلبات
+// 9) PROCESS REQUESTS
 // ======================================================
 
 async function processVacationRequests() {
@@ -288,9 +293,7 @@ async function processVacationRequests() {
     const statusRaw = p["حالة الطلب"]?.select?.name || null;
     const emailFlag = p[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
 
-    // --------------------------------------------
-    // ✔ إذا ما فيه حالة → نخليها "تحت المراجعة"
-    // --------------------------------------------
+    // ✔ إذا لا توجد حالة → تحويلها إلى "تحت المراجعة"
     let currentStatus = statusRaw;
     if (!currentStatus) {
       currentStatus = STATUS_REVIEW;
@@ -298,94 +301,65 @@ async function processVacationRequests() {
       await notion.pages.update({
         page_id: pageId,
         properties: {
-          "حالة الطلب": {
-            select: { name: STATUS_REVIEW },
-          },
+          "حالة الطلب": { select: { name: STATUS_REVIEW } },
         },
       });
 
-      console.log(`⚠ حالة الطلب فارغة — تم تحويلها إلى: ${STATUS_REVIEW}`);
+      console.log(`⚠ تم تعيين حالة الطلب إلى: تحت المراجعة`);
     }
 
-    // --------------------------------------------
-    // ✔ جلب بيانات الموظف
-    // --------------------------------------------
     const employee = await getEmployee(nationalId);
     if (!employee) continue;
 
     const usedDays = await getUsedDays(nationalId);
+
     const remainingDays =
       Number.isFinite(employee.baseBalance) &&
       Number.isFinite(usedDays)
         ? employee.baseBalance - usedDays
         : null;
 
-    // تحديث قيم الطلب
     const startRaw = p["تاريخ بداية الاجازة"]?.date?.start;
     const endRaw =
       p["تاريخ نهاية الاجازة"]?.date?.end ||
       p["تاريخ نهاية الاجازة"]?.date?.start ||
       startRaw;
 
-    const requestedDays = p["عدد ايام الاجازة المطلوب"]?.formula?.number || 0;
+    const requestedDays =
+      p["عدد ايام الاجازة المطلوب"]?.formula?.number || 0;
 
-    // تحديث صفحة الطلب
     await notion.pages.update({
       page_id: pageId,
       properties: {
         "اسم الموظف": {
           title: [{ type: "text", text: { content: employee.name } }],
         },
-        "رصيد الاجازة المستحق": {
-          number: employee.baseBalance,
-        },
-        "عدد الايام المتبقي من الاجازة": {
-          number: remainingDays,
-        },
+        "رصيد الاجازة المستحق": { number: employee.baseBalance },
+        "عدد الايام المتبقي من الاجازة": { number: remainingDays },
       },
     });
 
-    // تحديث رصيد الموظف
     await updateEmployeeBalance(employee.id, remainingDays);
 
-    // --------------------------------------------------
-    // 🔍 DEBUG SECTION — معرفة سبب عدم إرسال الإيميل
-    // --------------------------------------------------
-
-    console.log("\n==================== DEBUG EMAIL CHECK ====================");
-    console.log("📄 Request Page:", pageId);
-    console.log("👤 Employee:", employee.name);
-    console.log("📧 Email:", employee.email);
-    console.log("📌 Current Status:", currentStatus);
-    console.log("🏷 Email Flag:", emailFlag);
-    console.log("📅 Start Date:", startRaw);
-    console.log("📅 End Date:", endRaw);
-
-    const validStatuses = [STATUS_REVIEW, STATUS_APPROVED, STATUS_REJECTED];
+    // شروط إرسال الإيميل
+    const validStatuses = [
+      STATUS_REVIEW,
+      STATUS_APPROVED,
+      STATUS_REJECTED,
+    ];
 
     const cond1 = validStatuses.includes(currentStatus);
     const cond2 = emailFlag !== currentStatus;
     const cond3 = Boolean(employee.email);
     const cond4 = Boolean(startRaw && endRaw);
 
-    console.log("------------------------------------------------------------");
-    console.log("✔ Condition 1: Valid Status?          →", cond1);
-    console.log("✔ Condition 2: Email Flag Different?  →", cond2);
-    console.log("✔ Condition 3: Email Exists?          →", cond3);
-    console.log("✔ Condition 4: Dates Exist?           →", cond4);
-    console.log("------------------------------------------------------------");
-
     const canSend = cond1 && cond2 && cond3 && cond4;
 
-    console.log("➡ FINAL DECISION: Send Email? →", canSend);
-    console.log("============================================================\n");
-
     if (!canSend) {
-      console.log("🚫 لن يتم إرسال إيميل — الشروط غير مكتملة.\n");
+      console.log("🚫 لن يتم إرسال الإيميل — الشروط غير مكتملة.");
       continue;
     }
 
-    // إرسال الإيميل
     const info = {
       vacationType: p["نوع الاجازة"]?.select?.name || "غير محدد",
       startDate: formatDate(startRaw),
@@ -396,7 +370,6 @@ async function processVacationRequests() {
 
     await sendEmail(employee.email, employee.name, info, currentStatus);
 
-    // تحديث علامة الإيميل
     await notion.pages.update({
       page_id: pageId,
       properties: {
@@ -409,7 +382,7 @@ async function processVacationRequests() {
 }
 
 // ======================================================
-// 10) Main
+// 10) MAIN
 // ======================================================
 
 async function main() {
