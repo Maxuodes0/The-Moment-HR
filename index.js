@@ -127,7 +127,7 @@ function buildVacationEmailHtml({
             </p>
 
             <p style="margin-top:12px; direction: rtl; unicode-bidi: bidi-override;">
-              مع التحية،<br>فريق الموارد البشرية – The Moment
+              مع التحية،<br>فريق الموارد البشرية 
             </p>
 
           </td></tr>
