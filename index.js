@@ -349,19 +349,39 @@ async function processVacationRequests() {
     await updateEmployeeBalance(employee.id, remainingDays);
 
     // --------------------------------------------------
-    // ✔ تحديد هل نرسل إيميل؟
+    // 🔍 DEBUG SECTION — معرفة سبب عدم إرسال الإيميل
     // --------------------------------------------------
 
+    console.log("\n==================== DEBUG EMAIL CHECK ====================");
+    console.log("📄 Request Page:", pageId);
+    console.log("👤 Employee:", employee.name);
+    console.log("📧 Email:", employee.email);
+    console.log("📌 Current Status:", currentStatus);
+    console.log("🏷 Email Flag:", emailFlag);
+    console.log("📅 Start Date:", startRaw);
+    console.log("📅 End Date:", endRaw);
+
     const validStatuses = [STATUS_REVIEW, STATUS_APPROVED, STATUS_REJECTED];
-    const canSend =
-      validStatuses.includes(currentStatus) &&
-      emailFlag !== currentStatus &&
-      employee.email &&
-      startRaw &&
-      endRaw;
+
+    const cond1 = validStatuses.includes(currentStatus);
+    const cond2 = emailFlag !== currentStatus;
+    const cond3 = Boolean(employee.email);
+    const cond4 = Boolean(startRaw && endRaw);
+
+    console.log("------------------------------------------------------------");
+    console.log("✔ Condition 1: Valid Status?          →", cond1);
+    console.log("✔ Condition 2: Email Flag Different?  →", cond2);
+    console.log("✔ Condition 3: Email Exists?          →", cond3);
+    console.log("✔ Condition 4: Dates Exist?           →", cond4);
+    console.log("------------------------------------------------------------");
+
+    const canSend = cond1 && cond2 && cond3 && cond4;
+
+    console.log("➡ FINAL DECISION: Send Email? →", canSend);
+    console.log("============================================================\n");
 
     if (!canSend) {
-      console.log("🚫 لن يتم إرسال إيميل — الشروط غير مكتملة.");
+      console.log("🚫 لن يتم إرسال إيميل — الشروط غير مكتملة.\n");
       continue;
     }
 
