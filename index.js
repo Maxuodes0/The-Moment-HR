@@ -1,13 +1,11 @@
 import { Client } from "@notionhq/client";
 import nodemailer from "nodemailer";
 
-// ========================
-// إعداد Notion
-// ========================
+// ======================================================
+// 1) إعداد البيئة و Notion
+// ======================================================
 
-const notion = new Client({
-  auth: process.env.NOTION_TOKEN,
-});
+const notion = new Client({ auth: process.env.NOTION_TOKEN });
 
 const EMPLOYEES_DB_ID = process.env.NOTION_DB_EMPLOYEES;
 const VACATION_DB_ID = process.env.VACATION_DB_ID;
@@ -18,9 +16,9 @@ const STATUS_REJECTED = "مرفوضة";
 
 const EMAIL_FLAG_PROPERTY = "هل تم ارسال ايميل؟";
 
-// ========================
-// توابع مساعدة للتواريخ
-// ========================
+// ======================================================
+// 2) دوال مساعدة للتواريخ
+// ======================================================
 
 function formatDate(dateStr) {
   if (!dateStr) return "غير محدد";
@@ -38,9 +36,9 @@ function addOneDay(dateStr) {
   return d.toISOString().split("T")[0];
 }
 
-// ========================
-// قالب HTML للإيميل (تصميم The Moment) حسب الحالة
-// ========================
+// ======================================================
+// 3) إنشاء HTML للإيميل
+// ======================================================
 
 function buildVacationEmailHtml({
   employeeName,
@@ -52,183 +50,100 @@ function buildVacationEmailHtml({
   status,
 }) {
   let mainTitle = "";
-  let introLine = "";
+  let intro = "";
   let statusLine = "";
 
-  if (status === STATUS_REVIEW) {
-    mainTitle = "تم استلام طلب الإجازة الخاص بك";
-    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
-    statusLine = `
+  switch (status) {
+    case STATUS_REVIEW:
+      mainTitle = "تم استلام طلب الإجازة الخاص بك";
+      intro = `عزيزي <strong>${employeeName}</strong>،`;
+      statusLine = `
       نود إبلاغك بأنه تم استلام طلب الإجازة الذي قمت بتقديمه، وحالته الآن 
-      <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية في
-      <strong>The Moment</strong>.
-    `;
-  } else if (status === STATUS_APPROVED) {
-    mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
-    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
-    statusLine = `
-     نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وتم الموافقة علية
-      يمكنك الالتزام بالتواريخ الموضحة أدناه، وفي حال وجود أي تعديل يُرجى التنسيق مع قسم الموارد البشرية.
-    `;
-  } else if (status === STATUS_REJECTED) {
-    mainTitle = "بشأن طلب الإجازة الخاص بك";
-    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>`;
-    statusLine = `
-      نود إبلاغك بأنه بعد مراجعة طلب الإجازة الذي قمت بتقديمه، فإن حالته الآن
+      <strong>تحت المراجعة</strong> من قبل فريق الموارد البشرية.
+      `;
+      break;
+
+    case STATUS_APPROVED:
+      mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
+      intro = `عزيزي <strong>${employeeName}</strong>،`;
+      statusLine = `
+     نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وتمت الموافقة عليه.
+      `;
+      break;
+
+    case STATUS_REJECTED:
+      mainTitle = "بشأن طلب الإجازة الخاص بك";
+      intro = `عزيزي <strong>${employeeName}</strong>،`;
+      statusLine = `
+      بعد مراجعة طلب الإجازة الذي قمت بتقديمه، فإن حالته الآن 
       <strong>مرفوضة</strong>.
-      لطرح أي استفسار حول أسباب الرفض أو إمكانية تعديل الطلب، يُرجى التواصل مع قسم الموارد البشرية في
-      <strong>The Moment</strong>.
-    `;
-  } else {
-    mainTitle = "تحديث بخصوص طلب الإجازة الخاص بك";
-    introLine = `عزيزي <strong>${employeeName || "الموظف"}</strong>،`;
-    statusLine = `
-      نود إبلاغك بوجود تحديث على حالة طلب الإجازة الخاص بك في
-      <strong>The Moment</strong>.
-    `;
+      `;
+      break;
   }
 
   return `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <head>
-    <meta charset="UTF-8" />
-    <title>${mainTitle} - The Moment</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  </head>
-  <body style="margin:0; padding:0; background-color:#000000; font-family:Arial,Helvetica,sans-serif; direction:rtl; text-align:right;">
-    <table width="100%" border="0" cellspacing="0" cellpadding="0" style="background-color:#000000;">
-      <tr>
-        <td align="center">
-          <table width="600" border="0" cellspacing="0" cellpadding="0" style="width:600px; max-width:100%; background-color:#000000;">
+  <body style="margin:0;padding:0;background-color:#000;color:white;font-family:Arial;">
+    <table width="100%">
+      <tr><td align="center">
+        <table width="600" style="background:#000;max-width:100%;">
+          <tr>
+            <td>
+              <img src="cid:themoment-header" style="width:100%;height:auto;" />
+            </td>
+          </tr>
 
-            <!-- الهيدر بالصورة -->
-            <tr>
-              <td align="center" style="padding:0; margin:0;">
-                <img
-                  src="cid:themoment-header"
-                  alt="The Moment"
-                  style="display:block; width:100%; max-width:600px; height:auto; border:0; line-height:0; font-size:0;"
-                />
-              </td>
-            </tr>
+          <tr><td style="padding:24px;">
+            <h1 style="margin:0 0 12px 0;">${mainTitle}</h1>
+            <p>${intro}</p>
+            <p>${statusLine}</p>
 
-            <!-- المحتوى -->
-            <tr>
-              <td style="padding:24px; color:#ffffff; text-align:right;">
-                <h1 style="margin:0 0 12px 0; font-size:22px; font-weight:bold;">
-                  ${mainTitle}
-                </h1>
+            <h3 style="color:#ffb37a">🗂️ تفاصيل الطلب:</h3>
 
-                <p style="font-size:14px; line-height:1.8; color:#f2f2f2; margin:0 0 8px 0;">
-                  ${introLine}
-                </p>
+            <table width="100%" style="color:#ddd;">
+              <tr>
+                <td style="color:#ffd2a3;font-weight:bold;">نوع الإجازة:</td>
+                <td>${vacationType}</td>
+              </tr>
+              <tr>
+                <td style="color:#ffd2a3;font-weight:bold;">من تاريخ:</td>
+                <td>${startDate}</td>
+              </tr>
+              <tr>
+                <td style="color:#ffd2a3;font-weight:bold;">إلى تاريخ:</td>
+                <td>${endDate}</td>
+              </tr>
+              <tr>
+                <td style="color:#ffd2a3;font-weight:bold;">عدد الأيام:</td>
+                <td>${days} يوم</td>
+              </tr>
+              <tr>
+                <td style="color:#ffd2a3;font-weight:bold;">تاريخ العودة:</td>
+                <td>${backToWork}</td>
+              </tr>
+            </table>
 
-                <p style="font-size:14px; line-height:1.8; color:#f2f2f2; margin:0 0 16px 0;">
-                  ${statusLine}
-                </p>
+            <p style="margin-top:16px;">في حال وجود أي استفسارات، يمكنك التواصل مع قسم الموارد البشرية.</p>
+            <p style="margin-top:12px;">مع التحية،<br>فريق الموارد البشرية – The Moment</p>
+          </td></tr>
 
-                <!-- عنوان تفاصيل الطلب -->
-                <div style="margin:20px 0 12px 0; font-size:15px; font-weight:bold; color:#ffb37a;">
-                  🗂️ تفاصيل الطلب:
-                </div>
-
-                <!-- جدول تفاصيل الطلب -->
-                <table width="100%" border="0" cellspacing="0" cellpadding="0"
-                  style="font-size:14px; line-height:1.9; color:#f2f2f2; direction:rtl; text-align:right;">
-
-                  <tr>
-                    <td style="padding:6px 0; width:40%; font-weight:bold; color:#ffd2a3;">
-                      📄 نوع الإجازة:
-                    </td>
-                    <td style="padding:6px 0;">
-                      ${vacationType || "غير محدد"}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
-                      📅 من تاريخ:
-                    </td>
-                    <td style="padding:6px 0;">
-                      ${startDate || "غير محدد"}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
-                      📅 إلى تاريخ:
-                    </td>
-                    <td style="padding:6px 0;">
-                      ${endDate || "غير محدد"}
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
-                      🧮 عدد الأيام:
-                    </td>
-                    <td style="padding:6px 0;">
-                      ${
-                        Number.isFinite(days)
-                          ? days + " يوم"
-                          : "غير محسوب"
-                      }
-                    </td>
-                  </tr>
-
-                  <tr>
-                    <td style="padding:6px 0; font-weight:bold; color:#ffd2a3;">
-                      🔄 تاريخ العودة:
-                    </td>
-                    <td style="padding:6px 0;">
-                      ${backToWork || "سيتم تحديده لاحقاً"}
-                    </td>
-                  </tr>
-
-                </table>
-
-                ${
-                  status === STATUS_REVIEW
-                    ? `
-                <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:16px 0 8px 0;">
-                  سيتم مراجعة طلبك بكل عناية، وسيتم الرد عليك بتحديث الحالة عبر البريد الإلكتروني فور اتخاذ القرار. نشكرك على لطفك وتفهمك.
-                </p>
-                `
-                    : ""
-                }
-
-                <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:0 0 4px 0;">
-                  في حال وجود أي استفسارات إضافية، يمكنك التواصل مع قسم الموارد البشرية.
-                </p>
-
-                <p style="font-size:13px; line-height:1.8; color:#f2f2f2; margin:16px 0 0 0;">
-                  مع خالص التحية،<br/>
-                  فريق الموارد البشرية – The Moment
-                </p>
-              </td>
-            </tr>
-
-            <!-- الفوتر -->
-            <tr>
-              <td style="padding:16px 24px 24px 24px; font-size:11px; line-height:1.5; color:#aaaaaa; text-align:right; border-top:1px solid #333;">
-                © The Moment. جميع الحقوق محفوظة.<br/>
-                هذا البريد أُرسِل  من نظام إدارة الإجازات. في حال وجود استفسار، يرجى التواصل مع قسم الموارد البشرية.
-              </td>
-            </tr>
-
-          </table>
-        </td>
-      </tr>
+          <tr>
+            <td style="padding:16px;text-align:right;color:#aaa;font-size:12px;border-top:1px solid #333;">
+              © The Moment – جميع الحقوق محفوظة.
+            </td>
+          </tr>
+        </table>
+      </td></tr>
     </table>
   </body>
 </html>
 `;
 }
 
-// ========================
-// إعداد SMTP
-// ========================
+// ======================================================
+// 4) SMTP إعداد
+// ======================================================
 
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -240,24 +155,11 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ========================
-// إرسال الإيميل
-// ========================
+// ======================================================
+// 5) إرسال الإيميل
+// ======================================================
 
-async function sendEmailToEmployee(toEmail, employeeName, info, status) {
-  if (!toEmail) {
-    console.log("⚠ لا يوجد ايميل في الطلب، لن يتم ارسال ايميل.");
-    return;
-  }
-  if (!employeeName) {
-    console.log("⚠ لا يوجد اسم موظف، لن يتم ارسال ايميل.");
-    return;
-  }
-  if (!info.startDate || !info.endDate) {
-    console.log("⚠ تواريخ الإجازة ناقصة، لن يتم ارسال ايميل.");
-    return;
-  }
-
+async function sendEmail(to, employeeName, info, status) {
   const from = process.env.FROM_EMAIL || process.env.SMTP_USER;
 
   const html = buildVacationEmailHtml({
@@ -270,430 +172,229 @@ async function sendEmailToEmployee(toEmail, employeeName, info, status) {
     status,
   });
 
-  let subject = "تحديث بخصوص طلب الإجازة الخاص بك";
+  const subjects = {
+    [STATUS_REVIEW]: "تم استلام طلب الإجازة الخاص بك",
+    [STATUS_APPROVED]: "تمت الموافقة على طلب الإجازة",
+    [STATUS_REJECTED]: "بشأن طلب الإجازة الخاص بك",
+  };
 
-  if (status === STATUS_REVIEW) {
-    subject = "تم استلام طلب الإجازة الخاص بك";
-  } else if (status === STATUS_APPROVED) {
-    subject = "تمت الموافقة على طلب الإجازة الخاص بك";
-  } else if (status === STATUS_REJECTED) {
-    subject = "بشأن طلب الإجازة الخاص بك";
-  }
-
-  const text = `تحديث بخصوص طلب الإجازة الخاص بك للفترة من ${info.startDate} إلى ${info.endDate}. حالة الطلب الحالية: ${status}.`;
-
-  const mailOptions = {
+  await transporter.sendMail({
     from,
-    to: toEmail,
-    subject,
-    text,
+    to,
+    subject: subjects[status] || "تحديث على طلب الإجازة",
     html,
     attachments: [
       {
-        filename: "themoment-header.png",
+        filename: "header.png",
         path: "./assets/themoment-header.png",
         cid: "themoment-header",
       },
     ],
-  };
+  });
 
-  await transporter.sendMail(mailOptions);
-  console.log(`✔ Email sent to ${toEmail} for status "${status}"`);
+  console.log(`✔ Email sent to ${to} — Status: ${status}`);
 }
 
-// ========================
-// جلب الموظف من Employees DB عن طريق رقم الهوية
-// ========================
+// ======================================================
+// 6) جلب بيانات الموظف
+// ======================================================
 
-async function findEmployeeByNationalId(nationalId) {
-  if (!EMPLOYEES_DB_ID) {
-    console.error("❌ NOTION_DB_EMPLOYEES is missing.");
-    return null;
-  }
-
+async function getEmployee(nationalId) {
   if (!nationalId) return null;
 
-  try {
-    const response = await notion.databases.query({
-      database_id: EMPLOYEES_DB_ID,
-      filter: {
-        property: "رقم الهوية",
-        rich_text: {
-          equals: String(nationalId),
+  const res = await notion.databases.query({
+    database_id: EMPLOYEES_DB_ID,
+    filter: {
+      property: "رقم الهوية",
+      rich_text: { equals: String(nationalId) },
+    },
+    page_size: 1,
+  });
+
+  if (res.results.length === 0) return null;
+
+  const page = res.results[0];
+  const p = page.properties;
+
+  const name = p["اسم الموظف"]?.title?.[0]?.plain_text || null;
+  const email = p["البريد الإلكتروني"]?.email || null;
+
+  const balance =
+    p["رصيد الاجازة المستحق"]?.formula?.number ??
+    p["رصيد الاجازة المستحق"]?.number ??
+    null;
+
+  return { id: page.id, name, email, baseBalance: balance };
+}
+
+// ======================================================
+// 7) حساب مجموع الإجازات الموافق عليها سابقًا
+// ======================================================
+
+async function getUsedDays(nationalId) {
+  const res = await notion.databases.query({
+    database_id: VACATION_DB_ID,
+    filter: {
+      and: [
+        {
+          property: "رقم الاحوال/الاقامة",
+          number: { equals: Number(nationalId) },
         },
-      },
-      page_size: 1,
-    });
+        {
+          property: "حالة الطلب",
+          select: { equals: STATUS_APPROVED },
+        },
+      ],
+    },
+    page_size: 100,
+  });
 
-    if (response.results.length === 0) {
-      console.log(`❌ No employee found with رقم الهوية = ${nationalId}`);
-      return null;
-    }
-
-    const page = response.results[0];
-    const props = page.properties;
-
-    const nameProp = props["اسم الموظف"];
-    const emailProp = props["البريد الإلكتروني"];
-
-    const name =
-      nameProp &&
-      nameProp.title &&
-      nameProp.title[0] &&
-      nameProp.title[0].plain_text;
-
-    const email = emailProp?.email || null;
-
-    // الأساس: رصيد الإجازة المستحق (فورميلا أو رقم)
-    let baseVacationBalance = null;
-
-    const formulaProp = props["رصيد الاجازة المستحق"]?.formula;
-    const numberProp = props["رصيد الاجازة المستحق"]?.number;
-
-    if (typeof formulaProp?.number === "number") {
-      baseVacationBalance = formulaProp.number;
-    } else if (typeof numberProp === "number") {
-      baseVacationBalance = numberProp;
-    }
-
-    console.log(
-      `✔ Found employee "${name}" (email: ${email || "N/A"}, base vacation balance: ${
-        baseVacationBalance ?? "N/A"
-      }) for رقم الهوية = ${nationalId}`
-    );
-
-    return { id: page.id, name, email, baseVacationBalance };
-  } catch (err) {
-    console.error("❌ Error finding employee:", err.message);
-    return null;
-  }
+  return res.results.reduce((sum, page) => {
+    const days =
+      page.properties["الايام الموافق عليها في الطلب الحالي"]?.formula?.number ??
+      0;
+    return sum + (Number.isFinite(days) ? days : 0);
+  }, 0);
 }
 
-// ========================
-// مجموع الإجازات الموافق عليها تراكميًا لموظف
-// ========================
+// ======================================================
+// 8) تحديث رصيد الموظف
+// ======================================================
 
-async function getTotalApprovedVacationDaysForEmployee(nationalId) {
-  if (!VACATION_DB_ID || !nationalId) return null;
-
-  try {
-    const response = await notion.databases.query({
-      database_id: VACATION_DB_ID,
-      filter: {
-        and: [
-          {
-            property: "رقم الاحوال/الاقامة",
-            number: {
-              equals: Number(nationalId),
-            },
-          },
-          {
-            property: "حالة الطلب",
-            select: {
-              equals: STATUS_APPROVED,
-            },
-          },
-        ],
-      },
-      page_size: 100,
-    });
-
-    let total = 0;
-
-    for (const page of response.results) {
-      const props = page.properties;
-
-      const approvedDays =
-        props["الايام الموافق عليها في الطلب الحالي"]?.formula?.number ??
-        props["عدد ايام الاجازة المطلوب"]?.formula?.number ??
-        0;
-
-      if (typeof approvedDays === "number" && Number.isFinite(approvedDays)) {
-        total += approvedDays;
-      }
-    }
-
-    console.log(
-      `✔ Total approved vacation days for رقم الاحوال/الاقامة ${nationalId}: ${total}`
-    );
-
-    return total;
-  } catch (err) {
-    console.error(
-      `❌ Error calculating total approved days for ${nationalId}:`,
-      err.message
-    );
-    return null;
-  }
+async function updateEmployeeBalance(employeeId, remaining) {
+  await notion.pages.update({
+    page_id: employeeId,
+    properties: {
+      "رصيد الاجازة المتبقي": { number: remaining },
+    },
+  });
 }
 
-// ========================
-// تحديث رصيد الاجازة المتبقي في قاعدة الموظفين
-// ========================
+// ======================================================
+// 9) معالجة الطلبات
+// ======================================================
 
-async function updateEmployeeRemainingBalance(employeeId, remainingDays) {
-  if (!employeeId) return;
-  if (typeof remainingDays !== "number" || !Number.isFinite(remainingDays)) {
-    return;
-  }
+async function processVacationRequests() {
+  const res = await notion.databases.query({
+    database_id: VACATION_DB_ID,
+    page_size: 50,
+  });
 
-  try {
+  for (const page of res.results) {
+    const pageId = page.id;
+    const p = page.properties;
+
+    const nationalId = p["رقم الاحوال/الاقامة"]?.number;
+    const statusRaw = p["حالة الطلب"]?.select?.name || null;
+    const emailFlag = p[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
+
+    // --------------------------------------------
+    // ✔ إذا ما فيه حالة → نخليها "تحت المراجعة"
+    // --------------------------------------------
+    let currentStatus = statusRaw;
+    if (!currentStatus) {
+      currentStatus = STATUS_REVIEW;
+
+      await notion.pages.update({
+        page_id: pageId,
+        properties: {
+          "حالة الطلب": {
+            select: { name: STATUS_REVIEW },
+          },
+        },
+      });
+
+      console.log(`⚠ حالة الطلب فارغة — تم تحويلها إلى: ${STATUS_REVIEW}`);
+    }
+
+    // --------------------------------------------
+    // ✔ جلب بيانات الموظف
+    // --------------------------------------------
+    const employee = await getEmployee(nationalId);
+    if (!employee) continue;
+
+    const usedDays = await getUsedDays(nationalId);
+    const remainingDays =
+      Number.isFinite(employee.baseBalance) &&
+      Number.isFinite(usedDays)
+        ? employee.baseBalance - usedDays
+        : null;
+
+    // تحديث قيم الطلب
+    const startRaw = p["تاريخ بداية الاجازة"]?.date?.start;
+    const endRaw =
+      p["تاريخ نهاية الاجازة"]?.date?.end ||
+      p["تاريخ نهاية الاجازة"]?.date?.start ||
+      startRaw;
+
+    const requestedDays = p["عدد ايام الاجازة المطلوب"]?.formula?.number || 0;
+
+    // تحديث صفحة الطلب
     await notion.pages.update({
-      page_id: employeeId,
+      page_id: pageId,
       properties: {
-        "رصيد الاجازة المتبقي": {
+        "اسم الموظف": {
+          title: [{ type: "text", text: { content: employee.name } }],
+        },
+        "رصيد الاجازة المستحق": {
+          number: employee.baseBalance,
+        },
+        "عدد الايام المتبقي من الاجازة": {
           number: remainingDays,
         },
       },
     });
 
-    console.log(
-      `✔ Updated employee remaining vacation balance (رصيد الاجازة المتبقي) to ${remainingDays}`
-    );
-  } catch (err) {
-    console.error(
-      "❌ Error updating employee remaining balance:",
-      err.message
-    );
-  }
-}
+    // تحديث رصيد الموظف
+    await updateEmployeeBalance(employee.id, remainingDays);
 
-// ========================
-// معالجة طلبات الإجازة
-// ========================
+    // --------------------------------------------------
+    // ✔ تحديد هل نرسل إيميل؟
+    // --------------------------------------------------
 
-async function processVacationRequests() {
-  if (!VACATION_DB_ID) {
-    console.error("❌ VACATION_DB_ID is missing.");
-    return;
-  }
+    const validStatuses = [STATUS_REVIEW, STATUS_APPROVED, STATUS_REJECTED];
+    const canSend =
+      validStatuses.includes(currentStatus) &&
+      emailFlag !== currentStatus &&
+      employee.email &&
+      startRaw &&
+      endRaw;
 
-  console.log("===== Processing vacation requests =====");
-
-  try {
-    const response = await notion.databases.query({
-      database_id: VACATION_DB_ID,
-      page_size: 50,
-    });
-
-    console.log(`Found ${response.results.length} vacation requests.\n`);
-
-    for (const page of response.results) {
-      const pageId = page.id;
-      const props = page.properties;
-
-      const nationalId = props["رقم الاحوال/الاقامة"]?.number;
-      const currentStatus = props["حالة الطلب"]?.select?.name || null;
-      const vacationEmail = props["الايميل"]?.email || null;
-      const emailFlag =
-        props[EMAIL_FLAG_PROPERTY]?.rich_text?.[0]?.plain_text || null;
-
-      console.log(
-        `\n--- Vacation request ${pageId} ---\n` +
-          `رقم الاحوال/الاقامة: ${nationalId ?? "N/A"}\n` +
-          `حالة الطلب الحالية: ${currentStatus ?? "غير محددة"}\n` +
-          `الايميل في الطلب: ${vacationEmail || "N/A"}\n` +
-          `علامة الإيميل الحالية: ${emailFlag || "فارغ"}`
-      );
-
-      // جلب بيانات الموظف
-      let employeeRecord = null;
-      let employeeName = null;
-      let employeeEmail = null;
-      let baseVacationBalance = null; // رصيد الإجازة المستحق الأساس من DB الموظفين
-
-      if (nationalId) {
-        employeeRecord = await findEmployeeByNationalId(nationalId);
-        if (employeeRecord) {
-          employeeName = employeeRecord.name;
-          employeeEmail = employeeRecord.email;
-          baseVacationBalance = employeeRecord.baseVacationBalance;
-        }
-      }
-
-      const finalEmail = vacationEmail || employeeEmail || null;
-
-      // بيانات الإجازة
-      const startRaw = props["تاريخ بداية الاجازة"]?.date?.start || null;
-      const endRaw =
-        props["تاريخ نهاية الاجازة"]?.date?.end ||
-        props["تاريخ نهاية الاجازة"]?.date?.start ||
-        startRaw;
-
-      const requestedDays =
-        props["عدد ايام الاجازة المطلوب"]?.formula?.number ?? null;
-
-      const backToWorkRaw = addOneDay(endRaw);
-
-      const vacationInfo = {
-        vacationType: props["نوع الاجازة"]?.select?.name || null,
-        startDate: formatDate(startRaw),
-        endDate: formatDate(endRaw),
-        days: requestedDays,
-        backToWork: backToWorkRaw ? formatDate(backToWorkRaw) : null,
-      };
-
-      // حساب المتبقي تراكميًا (من رصيد الاجازة المستحق - مجموع الإجازات الموافق عليها)
-      let remainingVacationDays = null;
-      if (
-        nationalId &&
-        typeof baseVacationBalance === "number" &&
-        Number.isFinite(baseVacationBalance)
-      ) {
-        const totalApproved = await getTotalApprovedVacationDaysForEmployee(
-          nationalId
-        );
-
-        if (typeof totalApproved === "number" && Number.isFinite(totalApproved)) {
-          remainingVacationDays = baseVacationBalance - totalApproved;
-        }
-      }
-
-      // تجهيز الخصائص التي سيتم تحديثها في صفحة طلب الإجازة
-      const updateProps = {};
-
-      // اسم الموظف
-      if (employeeName) {
-        updateProps["اسم الموظف"] = {
-          title: [
-            {
-              type: "text",
-              text: { content: employeeName },
-            },
-          ],
-        };
-      }
-
-      // رصيد الاجازة المستحق - رقم في DB الإجازات (ننسخ الأساس من DB الموظفين)
-      if (
-        typeof baseVacationBalance === "number" &&
-        Number.isFinite(baseVacationBalance)
-      ) {
-        updateProps["رصيد الاجازة المستحق"] = {
-          number: baseVacationBalance,
-        };
-      }
-
-      // عدد الايام المتبقي من الاجازة - في DB الإجازات
-      if (
-        typeof remainingVacationDays === "number" &&
-        Number.isFinite(remainingVacationDays)
-      ) {
-        updateProps["عدد الايام المتبقي من الاجازة"] = {
-          number: remainingVacationDays,
-        };
-      }
-
-      if (Object.keys(updateProps).length > 0) {
-        try {
-          await notion.pages.update({
-            page_id: pageId,
-            properties: updateProps,
-          });
-          console.log(
-            "✔ Updated vacation request (name / base balance / remaining days)."
-          );
-        } catch (err) {
-          console.error(
-            `❌ Error updating vacation request ${pageId}:`,
-            err.message
-          );
-        }
-      }
-
-      // تحديث رصيد الاجازة المتبقي في قاعدة الموظفين
-      if (
-        employeeRecord &&
-        employeeRecord.id &&
-        typeof remainingVacationDays === "number" &&
-        Number.isFinite(remainingVacationDays)
-      ) {
-        await updateEmployeeRemainingBalance(
-          employeeRecord.id,
-          remainingVacationDays
-        );
-      }
-
-      // نحدد نوع الإيميل حسب حالة الطلب الحالية
-      let statusForEmail = null;
-      if (
-        currentStatus === STATUS_REVIEW ||
-        currentStatus === STATUS_APPROVED ||
-        currentStatus === STATUS_REJECTED
-      ) {
-        statusForEmail = currentStatus;
-      }
-
-      // نرسل ايميل فقط إذا:
-      // - الحالة الحالية واحدة من (تحت المراجعة / موافقة / مرفوضة)
-      // - حقل "هل تم ارسال ايميل؟" مختلف عن الحالة الحالية
-      // - وفيه ايميل واسم وتواريخ
-      const shouldSendEmail =
-        statusForEmail !== null &&
-        emailFlag !== currentStatus &&
-        !!finalEmail &&
-        !!employeeName &&
-        !!startRaw &&
-        !!endRaw;
-
-      if (!shouldSendEmail) {
-        console.log(
-          "لن يتم ارسال ايميل لهذا الطلب (الشروط غير مكتملة أو تم الإرسال لنفس الحالة سابقاً)."
-        );
-        continue;
-      }
-
-      try {
-        await sendEmailToEmployee(
-          finalEmail,
-          employeeName,
-          vacationInfo,
-          statusForEmail
-        );
-
-        // تحديث علامة الإيميل بعد الإرسال باسم الحالة الحالية
-        await notion.pages.update({
-          page_id: pageId,
-          properties: {
-            [EMAIL_FLAG_PROPERTY]: {
-              rich_text: [
-                {
-                  type: "text",
-                  text: { content: currentStatus || "" },
-                },
-              ],
-            },
-          },
-        });
-        console.log(
-          `✔ Updated email flag to current status "${currentStatus}".`
-        );
-      } catch (err) {
-        console.error(
-          "❌ Error sending email or updating email flag:",
-          err.message
-        );
-      }
+    if (!canSend) {
+      console.log("🚫 لن يتم إرسال إيميل — الشروط غير مكتملة.");
+      continue;
     }
-  } catch (err) {
-    console.error("❌ Error querying vacation database:", err.message);
+
+    // إرسال الإيميل
+    const info = {
+      vacationType: p["نوع الاجازة"]?.select?.name || "غير محدد",
+      startDate: formatDate(startRaw),
+      endDate: formatDate(endRaw),
+      days: requestedDays,
+      backToWork: formatDate(addOneDay(endRaw)),
+    };
+
+    await sendEmail(employee.email, employee.name, info, currentStatus);
+
+    // تحديث علامة الإيميل
+    await notion.pages.update({
+      page_id: pageId,
+      properties: {
+        [EMAIL_FLAG_PROPERTY]: {
+          rich_text: [{ type: "text", text: { content: currentStatus } }],
+        },
+      },
+    });
   }
 }
 
-// ========================
-// Main
-// ========================
+// ======================================================
+// 10) Main
+// ======================================================
 
 async function main() {
-  if (!process.env.NOTION_TOKEN) {
-    console.error("❌ NOTION_TOKEN is missing.");
-    return;
-  }
-
-  console.log("Starting The Moment HR vacation processor...");
+  console.log("🚀 Starting The Moment HR vacation processor...");
   await processVacationRequests();
 }
 
-main().catch((err) => {
-  console.error("❌ Fatal error:", err.message);
-});
+main().catch((err) => console.error("❌ Fatal error:", err.message));
