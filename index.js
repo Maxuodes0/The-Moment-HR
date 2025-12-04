@@ -1,8 +1,5 @@
 import { Client } from "@notionhq/client";
 import nodemailer from "nodemailer";
-import dotenv from "dotenv";
-
-dotenv.config();
 
 // ======================================================
 // 1) إعداد البيئة و Notion
@@ -40,7 +37,7 @@ function addOneDay(dateStr) {
 }
 
 // ======================================================
-// 3) إنشاء HTML للإيميل (مُصحَّح لـ RTL)
+// 3) إنشاء HTML للإيميل
 // ======================================================
 
 function buildVacationEmailHtml({
@@ -70,7 +67,7 @@ function buildVacationEmailHtml({
       mainTitle = "تمت الموافقة على طلب الإجازة الخاص بك";
       intro = `عزيزي <strong>${employeeName}</strong>،`;
       statusLine = `
-      نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وتمت الموافقة عليه.
+     نود إبلاغك بأنه تم اعتماد طلب الإجازة الذي قمت بتقديمه، وتمت الموافقة عليه.
       `;
       break;
 
@@ -87,7 +84,7 @@ function buildVacationEmailHtml({
   return `
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
-  <body style="margin:0;padding:0;background-color:#000;color:white;font-family:Arial; direction: rtl; text-align: right;">
+  <body style="margin:0;padding:0;background-color:#000;color:white;font-family:Arial;">
     <table width="100%">
       <tr><td align="center">
         <table width="600" style="background:#000;max-width:100%;">
@@ -104,26 +101,26 @@ function buildVacationEmailHtml({
 
             <h3 style="color:#ffb37a">🗂️ تفاصيل الطلب:</h3>
 
-            <table width="100%" style="color:#ddd; text-align: right;">
+            <table width="100%" style="color:#ddd;">
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">نوع الإجازة:</td>
-                <td style="text-align: right;">${vacationType}</td>
+                <td>${vacationType}</td>
               </tr>
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">من تاريخ:</td>
-                <td style="text-align: right;">${startDate}</td>
+                <td>${startDate}</td>
               </tr>
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">إلى تاريخ:</td>
-                <td style="text-align: right;">${endDate}</td>
+                <td>${endDate}</td>
               </tr>
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">عدد الأيام:</td>
-                <td style="text-align: right;">${days} يوم</td>
+                <td>${days} يوم</td>
               </tr>
               <tr>
                 <td style="color:#ffd2a3;font-weight:bold;">تاريخ العودة:</td>
-                <td style="text-align: right;">${backToWork}</td>
+                <td>${backToWork}</td>
               </tr>
             </table>
 
@@ -372,7 +369,7 @@ async function processVacationRequests() {
     const cond4 = Boolean(startRaw && endRaw);
 
     console.log("------------------------------------------------------------");
-    console.log("✔ Condition 1: Valid Status?         →", cond1);
+    console.log("✔ Condition 1: Valid Status?          →", cond1);
     console.log("✔ Condition 2: Email Flag Different?  →", cond2);
     console.log("✔ Condition 3: Email Exists?          →", cond3);
     console.log("✔ Condition 4: Dates Exist?           →", cond4);
