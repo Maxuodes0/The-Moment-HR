@@ -265,7 +265,7 @@ async function updateEmployeeBalance(employeeId, remaining) {
   await notion.pages.update({
     page_id: employeeId,
     properties: {
-      "رصيد الاجازة المتبقي": { number: remaining },
+      "رصيد الاجازة المتاح": { number: remaining },
     },
   });
 }
